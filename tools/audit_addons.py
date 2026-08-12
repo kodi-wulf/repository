@@ -1,20 +1,9 @@
 #!/usr/bin/env python3
-"""Audit Kodi-Wulf addon packages.
-
-The audit is deliberately non-destructive. It verifies package structure,
-assets and dependencies and, when addon metadata exposes a GitHub source,
-checks the upstream repository's activity and releases.
-
-Output: audit/addons-audit.json and audit/addons-audit.md
-"""
+"""Audit Kodi-Wulf addon packages (non-destructive)."""
 from __future__ import annotations
-
 import json
 import os
 import re
-import time
-import urllib.error
-import urllib.parse
 import urllib.request
 import zipfile
 from dataclasses import asdict, dataclass
@@ -62,11 +51,7 @@ def asset_path(members: set[str], addon_xml_name: str, value: str) -> str | None
     if not value or value.startswith("/") or ".." in Path(value).parts:
         return None
     base = addon_xml_name.rsplit("/", 1)[0] if "/" in addon_xml_name else ""
-    candidates = []
-    if base:
-        candidates.append(f"{base}/{value}")
-    candidates.append(value)
-    for candidate in candidates:
+    for candidate in ([f"{base}/{value}"] if base else []) + [value]:
         if candidate in members:
             return candidate
     return None
@@ -74,23 +59,19 @@ def asset_path(members: set[str], addon_xml_name: str, value: str) -> str | None
 
 def github_repo_from_urls(urls: list[str]) -> str:
     for raw in urls:
-        if not raw:
-            continue
-        m = re.search(r"github\\.com/([^/\\s]+)/([^/#?\\s]+)", raw, re.I)
+        m = re.search(r"github\.com/([^/\s]+)/([^/#?\s]+)", raw, re.I)
         if m:
-            owner, repo = m.group(1), re.sub(r"\\.git$", "", m.group(2))
-            return f"{owner}/{repo}"
+            return f"{m.group(1)}/{re.sub(r'\.git$', '', m.group(2))}"
     return ""
 
 
-def github_get(path: str) -> tuple[dict | list | None, str]:
+def github_get(path: str):
     token = os.environ.get("GITHUB_TOKEN", "")
-    req = urllib.request.Request(GITHUB_API + path, headers={
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "kodi-wulf-addon-audit",
-        **({"Authorization": f"Bearer {token}"} if token else {}),
-    })
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "kodi-wulf-addon-audit"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     try:
+        req = urllib.request.Request(GITHUB_API + path, headers=headers)
         with urllib.request.urlopen(req, timeout=20) as response:
             return json.load(response), ""
     except Exception as exc:
@@ -104,57 +85,39 @@ def audit_zip(path: Path) -> Record:
             members = zip_members(zf)
             addon_xml_name = find_addon_xml(members)
             if not addon_xml_name:
-                rec.status = "INVALID"
-                rec.notes.append("missing addon.xml")
-                return rec
+                rec.status = "INVALID"; rec.notes.append("missing addon.xml"); return rec
             root = ET.fromstring(zf.read(addon_xml_name))
     except Exception as exc:
-        rec.status = "INVALID"
-        rec.notes.append(f"ZIP/XML error: {exc}")
-        return rec
+        rec.status = "INVALID"; rec.notes.append(f"ZIP/XML error: {exc}"); return rec
 
     rec.addon_id = root.attrib.get("id", "").strip()
     rec.version = root.attrib.get("version", "").strip()
     rec.name = root.attrib.get("name", rec.addon_id).strip()
 
-    metadata = None
-    for ext in root.findall("extension"):
-        if ext.attrib.get("point") == "xbmc.addon.metadata":
-            metadata = ext
-            break
-    if metadata is not None:
-        assets = metadata.find("assets")
-        if assets is not None:
-            icon = assets.findtext("icon", default="").strip()
-            fanart = assets.findtext("fanart", default="").strip()
-            rec.icon = icon
-            rec.fanart = fanart
-            if icon:
-                rec.icon_ok = asset_path(members, addon_xml_name, icon) is not None
-            if fanart:
-                rec.fanart_ok = asset_path(members, addon_xml_name, fanart) is not None
-        else:
-            rec.notes.append("missing <assets>")
-    else:
+    metadata = next((e for e in root.findall("extension") if e.attrib.get("point") == "xbmc.addon.metadata"), None)
+    if metadata is None:
         rec.notes.append("missing xbmc.addon.metadata extension")
+    else:
+        assets = metadata.find("assets")
+        if assets is None:
+            rec.notes.append("missing <assets>")
+        else:
+            rec.icon = assets.findtext("icon", default="").strip()
+            rec.fanart = assets.findtext("fanart", default="").strip()
+            rec.icon_ok = bool(rec.icon and asset_path(members, addon_xml_name, rec.icon))
+            rec.fanart_ok = bool(rec.fanart and asset_path(members, addon_xml_name, rec.fanart))
 
     req = root.find("requires")
     if req is not None:
         rec.dependencies = [x.attrib.get("addon", "") for x in req.findall("import") if x.attrib.get("addon")]
 
-    urls = []
-    for tag in ("source", "website", "forum"):
-        value = root.findtext(f".//{tag}", default="").strip()
-        if value:
-            urls.append(value)
-    rec.github_source = github_repo_from_urls(urls)
+    urls = [root.findtext(f".//{tag}", default="").strip() for tag in ("source", "website", "forum")]
+    rec.github_source = github_repo_from_urls([u for u in urls if u])
 
     if not rec.icon_ok:
-        rec.status = "FAIL"
-        rec.notes.append("icon missing or not resolvable inside package")
+        rec.status = "FAIL"; rec.notes.append("icon missing or not resolvable inside package")
     if rec.fanart and not rec.fanart_ok:
-        rec.status = "FAIL"
-        rec.notes.append("fanart missing or not resolvable inside package")
+        rec.status = "FAIL"; rec.notes.append("fanart missing or not resolvable inside package")
 
     if rec.github_source:
         data, err = github_get("/repos/" + rec.github_source)
@@ -167,19 +130,17 @@ def audit_zip(path: Path) -> Record:
                 rec.upstream_latest_release = release.get("tag_name", "") or release.get("name", "")
             elif rerr and "HTTP Error 404" not in rerr:
                 rec.upstream_error = rerr
-            if rec.upstream_archived:
-                rec.status = "DEAD" if rec.status == "OK" else rec.status
             try:
                 pushed = datetime.fromisoformat(rec.upstream_last_push.replace("Z", "+00:00"))
-                age_days = (datetime.now(timezone.utc) - pushed).days
-                if age_days > 1461:
+                if (datetime.now(timezone.utc) - pushed).days > 1461:
                     rec.status = "DEAD" if rec.status == "OK" else rec.status
-                    rec.notes.append(f"upstream inactive for {age_days} days")
+                    rec.notes.append("upstream inactive for more than 4 years")
             except Exception:
                 pass
+            if rec.upstream_archived:
+                rec.status = "DEAD" if rec.status == "OK" else rec.status
         else:
             rec.upstream_error = err
-
     return rec
 
 
@@ -187,26 +148,18 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     paths = sorted((ROOT / "zips").rglob("*.zip")) if (ROOT / "zips").is_dir() else []
     records = [audit_zip(p) for p in paths]
-    payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "package_count": len(records),
-        "counts": {s: sum(r.status == s for r in records) for s in ("OK", "FAIL", "DEAD", "INVALID")},
-        "records": [asdict(r) for r in records],
-    }
+    counts = {s: sum(r.status == s for r in records) for s in ("OK", "FAIL", "DEAD", "INVALID")}
+    payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "package_count": len(records), "counts": counts, "records": [asdict(r) for r in records]}
     (OUT / "addons-audit.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
     lines = ["# Kodi-Wulf Add-on Audit", "", f"Generated: {payload['generated_at']}", "", f"Packages: **{len(records)}**", "", "| Status | Count |", "|---|---:|"]
-    for status, count in payload["counts"].items():
-        lines.append(f"| {status} | {count} |")
+    lines += [f"| {s} | {c} |" for s, c in counts.items()]
     lines += ["", "## Packages", "", "| Add-on | Version | Icon | Upstream | Status | Notes |", "|---|---|---|---|---|---|"]
     for r in records:
-        icon = "OK" if r.icon_ok else "MISSING"
         upstream = f"[{r.github_source}]({r.upstream_repo_url})" if r.github_source and r.upstream_repo_url else r.github_source or "—"
-        notes = "; ".join(r.notes or [])
-        lines.append(f"| `{r.addon_id}` | `{r.version}` | {icon} | {upstream} | **{r.status}** | {notes} |")
+        lines.append(f"| `{r.addon_id}` | `{r.version}` | {'OK' if r.icon_ok else 'MISSING'} | {upstream} | **{r.status}** | {'; '.join(r.notes or [])} |")
     (OUT / "addons-audit.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(json.dumps(payload["counts"], indent=2))
-    return 0 if payload["counts"]["FAIL"] == 0 and payload["counts"]["INVALID"] == 0 else 1
+    print(json.dumps(counts, indent=2))
+    return 0 if counts["FAIL"] == 0 and counts["INVALID"] == 0 else 1
 
 if __name__ == "__main__":
     raise SystemExit(main())
