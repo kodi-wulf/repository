@@ -31,6 +31,7 @@ jobs:
         run: |
           python3 -m py_compile tools/*.py
           python3 tools/validate_repo.py
+          python3 tools/validate_addon_assets.py
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
