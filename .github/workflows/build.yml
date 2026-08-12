@@ -25,6 +25,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Repair legacy add-on artwork manifests
+        run: python3 tools/repair_addon_assets.py "$GITHUB_WORKSPACE"
+
       - name: Generate repository metadata and Jekyll navigation
         run: |
           python3 tools/build.py --root "$GITHUB_WORKSPACE" --cleanup-legacy
