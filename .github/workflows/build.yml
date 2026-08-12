@@ -10,6 +10,10 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  REPO_BASE_URL: https://kodi-wulf.github.io/repository/
+  REPO_VERSION: 1.33.7a
+
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -24,14 +28,27 @@ jobs:
       - name: Generate repository metadata and Jekyll navigation
         run: |
           python3 tools/build.py --root "$GITHUB_WORKSPACE" --cleanup-legacy
-          python3 tools/build.py --root "$GITHUB_WORKSPACE" --base-url "https://kodi-wulf.github.io/repository/" --repo-version "1.33.7a" --installer-only
-          python3 tools/build.py --root "$GITHUB_WORKSPACE" --base-url "https://kodi-wulf.github.io/repository/" --site-only
+          python3 tools/build.py --root "$GITHUB_WORKSPACE" --base-url "$REPO_BASE_URL" --repo-version "$REPO_VERSION" --installer-only
+          python3 tools/build.py --root "$GITHUB_WORKSPACE" --base-url "$REPO_BASE_URL" --repo-version "$REPO_VERSION" --site-only
 
       - name: Compile and validate build tools
         run: |
           python3 -m py_compile tools/*.py
           python3 tools/validate_repo.py
           python3 tools/validate_addon_assets.py
+
+      - name: Audit package versions, dependencies and upstream activity
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 tools/audit_addons.py
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodi-wulf-addon-audit
+          path: audit/
+          if-no-files-found: error
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
