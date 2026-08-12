@@ -24,7 +24,7 @@ jobs:
       - name: Generate repository metadata and Jekyll navigation
         run: |
           python3 tools/build.py --root "$GITHUB_WORKSPACE" --cleanup-legacy
-          python3 tools/build.py --root "$GITHUB_WORKSPACE" --base-url "https://kodi-wulf.github.io/repository/" --repo-version "1.0.1" --installer-only
+          python3 tools/build.py --root "$GITHUB_WORKSPACE" --base-url "https://kodi-wulf.github.io/repository/" --repo-version "1.33.7a" --installer-only
           python3 tools/build.py --root "$GITHUB_WORKSPACE" --base-url "https://kodi-wulf.github.io/repository/" --site-only
 
       - name: Compile and validate build tools
