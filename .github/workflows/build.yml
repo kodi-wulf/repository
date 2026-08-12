@@ -36,9 +36,21 @@ jobs:
 
       - name: Compile and validate build tools
         run: |
-          python3 -m py_compile tools/*.py
-          python3 tools/validate_repo.py
-          python3 tools/validate_addon_assets.py
+          set -o pipefail
+          status=0
+          for file in tools/*.py; do
+            echo "=== py_compile: $file ==="
+            if ! python3 -m py_compile "$file"; then
+              status=1
+            fi
+          done
+          exit "$status"
+
+      - name: Validate repository
+        run: python3 tools/validate_repo.py
+
+      - name: Validate add-on artwork
+        run: python3 tools/validate_addon_assets.py
 
       - name: Audit package versions, dependencies and upstream activity
         continue-on-error: true
