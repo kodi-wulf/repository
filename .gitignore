@@ -10,18 +10,23 @@ dist/
 Thumbs.db
 .idea/
 .vscode/
-# Build-/Test-Artefakte
+
+# Temporäre Intake-/Build-Artefakte
+# Externe originale Repository-Installer werden ausschließlich hier für tools/build.py abgelegt.
+zips/
 incoming/
 Build/
 BUILD/
 test/
 tests/tmp/
+
 # Python/Kodi Cache-Dateien
 __pycache__/
 *.pyc
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
 # Betriebssystem-Dateien
 .drdebug-backups/
 tools/*.bak-*
