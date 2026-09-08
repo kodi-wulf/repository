@@ -45,7 +45,6 @@ After installation, Kodi reads:
     repository/<addon.id>/     Repository ZIPs
     plugins/<type>/<addon.id>/ Plugin ZIPs, for example plugins/audio/
     script/<type>/<addon.id>/  Script ZIPs, for example script/module/
-    incoming/*.zip             Optional temporary import inbox
     addons.xml     Kodi repository metadata
     addons.xml.md5 Kodi repository checksum
     index.html     GitHub Pages landing page
