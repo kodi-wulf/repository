@@ -54,7 +54,11 @@ def validate(zip_path: Path) -> tuple[str, str]:
             if not addon_id or not version:
                 fail(f"missing id/version: {zip_path.relative_to(ROOT)}")
 
-            assets = root.find("extension[@point='xbmc.addon.metadata']/assets")
+            metadata = next((
+                extension for extension in root.findall("extension")
+                if extension.get("point") in {"xbmc.addon.metadata", "kodi.addon.metadata"}
+            ), None)
+            assets = metadata.find("assets") if metadata is not None else None
             if assets is None:
                 fail(f"<assets> missing: {addon_id} {version} ({zip_path.relative_to(ROOT)})")
 

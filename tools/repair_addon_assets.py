@@ -38,7 +38,11 @@ def repair_zip(path: Path) -> bool:
             return False
         root_prefix = addon_xml_name.rsplit("/", 1)[0] if "/" in addon_xml_name else ""
         root = ET.fromstring(src.read(addon_xml_name))
-        metadata = next((e for e in root if local(e.tag) == "extension" and e.attrib.get("point") == "xbmc.addon.metadata"), None)
+        metadata = next((
+            e for e in root
+            if local(e.tag) == "extension"
+            and e.attrib.get("point") in {"xbmc.addon.metadata", "kodi.addon.metadata"}
+        ), None)
         if metadata is None:
             return False
         assets = next((e for e in metadata if local(e.tag) == "assets"), None)
@@ -53,12 +57,30 @@ def repair_zip(path: Path) -> bool:
             "resources/fanart.jpg", "resources/fanart.png", "resources/fanart.jpeg",
             "fanart.jpg", "fanart.png", "fanart.jpeg"))
         changed = False
-        if not existing.get("icon") and icon:
-            ET.SubElement(assets, "icon").text = icon
+        asset_nodes = {local(e.tag): e for e in assets}
+
+        def target_exists(value: str) -> bool:
+            value = value.replace("\\", "/").lstrip("/")
+            target = f"{root_prefix}/{value}" if root_prefix else value
+            return target in names
+
+        if icon and (not existing.get("icon") or not target_exists(existing["icon"])):
+            node = asset_nodes.get("icon")
+            if node is None:
+                node = ET.SubElement(assets, "icon")
+            node.text = icon
             changed = True
-        if not existing.get("fanart") and fanart:
-            ET.SubElement(assets, "fanart").text = fanart
+        if fanart and (not existing.get("fanart") or not target_exists(existing["fanart"])):
+            node = asset_nodes.get("fanart")
+            if node is None:
+                node = ET.SubElement(assets, "fanart")
+            node.text = fanart
             changed = True
+        elif existing.get("fanart") and not target_exists(existing["fanart"]):
+            node = asset_nodes.get("fanart")
+            if node is not None:
+                assets.remove(node)
+                changed = True
         if not changed:
             return False
         xml_bytes = ET.tostring(root, encoding="utf-8", xml_declaration=True)
