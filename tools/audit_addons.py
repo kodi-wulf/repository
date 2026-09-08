@@ -47,8 +47,8 @@ def find_addon_xml(members: set[str]) -> str | None:
 
 
 def asset_path(members: set[str], addon_xml_name: str, value: str) -> str | None:
-    value = value.strip().replace("\\", "/")
-    if not value or value.startswith("/") or ".." in Path(value).parts:
+    value = value.strip().replace("\\", "/").lstrip("/")
+    if not value or value.startswith("../") or "/../" in value:
         return None
     base = addon_xml_name.rsplit("/", 1)[0] if "/" in addon_xml_name else ""
     for candidate in ([f"{base}/{value}"] if base else []) + [value]:
@@ -94,9 +94,12 @@ def audit_zip(path: Path) -> Record:
     rec.version = root.attrib.get("version", "").strip()
     rec.name = root.attrib.get("name", rec.addon_id).strip()
 
-    metadata = next((e for e in root.findall("extension") if e.attrib.get("point") == "xbmc.addon.metadata"), None)
+    metadata = next((
+        e for e in root.findall("extension")
+        if e.attrib.get("point") in {"xbmc.addon.metadata", "kodi.addon.metadata"}
+    ), None)
     if metadata is None:
-        rec.notes.append("missing xbmc.addon.metadata extension")
+        rec.notes.append("missing addon metadata extension")
     else:
         assets = metadata.find("assets")
         if assets is None:
@@ -144,9 +147,19 @@ def audit_zip(path: Path) -> Record:
     return rec
 
 
+def package_paths() -> list[Path]:
+    return sorted({
+        *ROOT.glob("*.zip"),
+        *ROOT.glob("plugins/**/*.zip"),
+        *ROOT.glob("repository/**/*.zip"),
+        *ROOT.glob("script/**/*.zip"),
+        *ROOT.glob("zips/**/*.zip"),
+    })
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
-    paths = sorted((ROOT / "zips").rglob("*.zip")) if (ROOT / "zips").is_dir() else []
+    paths = package_paths()
     records = [audit_zip(p) for p in paths]
     counts = {s: sum(r.status == s for r in records) for s in ("OK", "FAIL", "DEAD", "INVALID")}
     payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "package_count": len(records), "counts": counts, "records": [asdict(r) for r in records]}
