@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import shutil
+import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -81,6 +84,47 @@ def load_packages(root: Path, directories: list[Path]) -> tuple[list[Package], l
     return packages, errors
 
 
+def xml_semantically_equal(left: bytes, right: bytes) -> bool:
+    try:
+        left_root = ET.fromstring(left)
+        right_root = ET.fromstring(right)
+    except ET.ParseError:
+        return False
+    return ET.tostring(left_root, encoding="utf-8") == ET.tostring(right_root, encoding="utf-8")
+
+
+def prepare_expected_root(root: Path, base_url: str) -> tempfile.TemporaryDirectory[str]:
+    workspace = tempfile.TemporaryDirectory(prefix="kodiwulf-online-", dir=str(root.parent))
+    expected_root = Path(workspace.name) / "repository"
+    shutil.copytree(
+        root,
+        expected_root,
+        ignore=shutil.ignore_patterns(".git", "audit", "__pycache__", ".pytest_cache"),
+    )
+    installer_names = sorted(path.name for path in expected_root.glob("repository.kodi-wulf-v*.zip"))
+    if len(installer_names) != 1:
+        workspace.cleanup()
+        raise RuntimeError(f"expected one Kodi-Wulf installer, found {len(installer_names)}")
+    prefix = "repository.kodi-wulf-v"
+    suffix = ".zip"
+    installer = installer_names[0]
+    repo_version = installer[len(prefix):-len(suffix)]
+    python = sys.executable
+    commands = [
+        [python, "tools/repair_addon_assets.py", str(expected_root)],
+        [python, "tools/build.py", "--root", str(expected_root), "--cleanup-legacy"],
+        [python, "tools/build.py", "--root", str(expected_root), "--base-url", base_url, "--repo-version", repo_version, "--installer-only"],
+        [python, "tools/build.py", "--root", str(expected_root), "--base-url", base_url, "--repo-version", repo_version, "--site-only"],
+    ]
+    try:
+        for command in commands:
+            subprocess.run(command, cwd=expected_root, check=True, stdout=subprocess.DEVNULL)
+    except Exception:
+        workspace.cleanup()
+        raise
+    return workspace
+
+
 def validate_catalog(base_url: str, root: Path, directory: Path) -> list[str]:
     errors: list[str] = []
     relative_directory = directory.relative_to(root).as_posix()
@@ -107,8 +151,8 @@ def validate_catalog(base_url: str, root: Path, directory: Path) -> list[str]:
     except OSError as error:
         errors.append(f"Cannot read local {xml_relative}: {error}")
     else:
-        if remote_xml != local_xml:
-            errors.append(f"Published catalog differs from local file: {xml_relative}")
+        if not xml_semantically_equal(remote_xml, local_xml):
+            errors.append(f"Published catalog differs semantically from expected build: {xml_relative}")
 
     try:
         ET.fromstring(remote_xml)
@@ -134,42 +178,50 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=24)
     arguments = parser.parse_args()
 
-    directories = catalog_directories(ROOT)
-    packages, errors = load_packages(ROOT, directories)
+    try:
+        workspace = prepare_expected_root(ROOT, arguments.base_url)
+    except (OSError, subprocess.CalledProcessError, RuntimeError) as error:
+        print(f"ERROR: cannot prepare expected build state: {error}", file=sys.stderr)
+        return 1
 
-    for directory in directories:
-        try:
-            errors.extend(validate_catalog(arguments.base_url, ROOT, directory))
-        except (OSError, urllib.error.URLError) as error:
-            errors.append(f"Network error for {directory.relative_to(ROOT)}: {error}")
+    with workspace:
+        expected_root = Path(workspace.name) / "repository"
+        directories = catalog_directories(expected_root)
+        packages, errors = load_packages(expected_root, directories)
 
-    installers = sorted(ROOT.glob("repository.kodi-wulf-v*.zip"))
-    if len(installers) != 1:
-        errors.append(f"Expected one local Kodi-Wulf installer, found {len(installers)}")
-    else:
-        installer = installers[0].name
-        try:
-            status, _, content_type = fetch(url_for(arguments.base_url, installer), method="HEAD")
-            if status != 200:
-                errors.append(f"HTTP {status}: {installer}")
-            elif "zip" not in content_type.casefold() and "octet-stream" not in content_type.casefold():
-                errors.append(f"Unexpected content type {content_type!r}: {installer}")
-        except (OSError, urllib.error.URLError) as error:
-            errors.append(f"Network error for {installer}: {error}")
-
-    with ThreadPoolExecutor(max_workers=max(1, arguments.workers)) as executor:
-        futures = {
-            executor.submit(validate_package, arguments.base_url, package): package
-            for package in packages
-        }
-        for future in as_completed(futures):
-            package = futures[future]
+        for directory in directories:
             try:
-                error = future.result()
-            except (OSError, urllib.error.URLError) as exception:
-                error = f"Network error for {package.relative_path}: {exception}"
-            if error:
-                errors.append(error)
+                errors.extend(validate_catalog(arguments.base_url, expected_root, directory))
+            except (OSError, urllib.error.URLError) as error:
+                errors.append(f"Network error for {directory.relative_to(expected_root)}: {error}")
+
+        installers = sorted(expected_root.glob("repository.kodi-wulf-v*.zip"))
+        if len(installers) != 1:
+            errors.append(f"Expected one local Kodi-Wulf installer, found {len(installers)}")
+        else:
+            installer = installers[0].name
+            try:
+                status, _, content_type = fetch(url_for(arguments.base_url, installer), method="HEAD")
+                if status != 200:
+                    errors.append(f"HTTP {status}: {installer}")
+                elif "zip" not in content_type.casefold() and "octet-stream" not in content_type.casefold():
+                    errors.append(f"Unexpected content type {content_type!r}: {installer}")
+            except (OSError, urllib.error.URLError) as error:
+                errors.append(f"Network error for {installer}: {error}")
+
+        with ThreadPoolExecutor(max_workers=max(1, arguments.workers)) as executor:
+            futures = {
+                executor.submit(validate_package, arguments.base_url, package): package
+                for package in packages
+            }
+            for future in as_completed(futures):
+                package = futures[future]
+                try:
+                    error = future.result()
+                except (OSError, urllib.error.URLError) as exception:
+                    error = f"Network error for {package.relative_path}: {exception}"
+                if error:
+                    errors.append(error)
 
     if errors:
         for error in sorted(errors, key=str.casefold):
