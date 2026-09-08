@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addons>
-  <addon id="resource.language.de_de" version="11.0.105" name="German" provider-name="Team Kodi">
+  <addon id="resource.language.de_de" version="11.0.109" name="German" provider-name="Team Kodi">
 
 
     <requires>
@@ -346,6 +346,15 @@ v0.5.9 (2022-03-22)
 
 
       <description>Kodi module library for the Python bindings for Musicbrainz' NGS webservice developed by alastair.</description>
+
+
+      <assets>
+
+
+        <icon>icon.png</icon>
+
+
+      </assets>
 
 
       <license>GNU GENERAL PUBLIC LICENSE V3</license>

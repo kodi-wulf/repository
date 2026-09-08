@@ -155,76 +155,6 @@
 
 
   </addon>
-  <addon id="chamchenko-dev" name="chamchenko-dev" version="0.0.3" provider-name="chamchenko">
-
-
-    <requires>
-
-
-      <import addon="xbmc.addon" version="12.0.0"/>
-
-
-    </requires>
-
-
-    <extension point="xbmc.addon.repository" name="chamchenko">
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/chamchenko/repository.chamchenko/master/xmls/dev/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/chamchenko/repository.chamchenko/master/xmls/dev/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/chamchenko/repository.chamchenko/master/zips/dev/</datadir>
-
-
-        <hashes>false</hashes>
-
-
-      </dir>
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/chamchenko/repository.chamchenko/lfs/xmls/dev/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/chamchenko/repository.chamchenko/lfs/xmls/dev/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://media.githubusercontent.com/media/chamchenko/repository.chamchenko/lfs/zips/dev/</datadir>
-
-
-        <hashes>false</hashes>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Kodi Video Add-ons</summary>
-
-
-      <description>This repository contain Kodi videos Add-ons</description>
-
-
-      <platform>all</platform>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="hellyrepo.kodi" name="HellyRepo" version="0.2.6" provider-name="Helly">
 
 
@@ -580,7 +510,7 @@
       <description lang="en_GB">This repository is for development builds of MB-Kodi Addons.
 
 Program Addons:
-- "Insert/Swap Kodi Favourites" - Program Addon that allows you to easily re-order your favourites. Works in all skins including Confluence skin.</description>
+- &quot;Insert/Swap Kodi Favourites&quot; - Program Addon that allows you to easily re-order your favourites. Works in all skins including Confluence skin.</description>
 
 
       <disclaimer>Information published on or related to MB-Kodi® repository is accurate and correct to our knowledge, however, there may be omissions, errors, or mistakes. Content published on or related to MB-Kodi is for informational purposes only. By continuing to use these services, you agree to the Terms and Conditions outlined in the ReadMe file. https://github.com/M-Borsch/repository.kodi.mb/blob/main/README.md</disclaimer>
@@ -590,28 +520,28 @@ Program Addons:
         [COLOR lavender][B]M-Borsch Repository[/B][/COLOR]
 [B]4.2:[/B]
 - Minor Release: Repo contains only 1 Program Addon.
- - This version of "Insert/Swap Kodi Favourites" uses the configuration panel to allow users to set the thumbnail size small/large.
+ - This version of &quot;Insert/Swap Kodi Favourites&quot; uses the configuration panel to allow users to set the thumbnail size small/large.
 [B]4.1:[/B]
 - Minor Release: Repo contains only 1 Program Addon.
- - This version of "Insert/Swap Kodi Favourites" uses the configuration panel to allow users to set the label font size small/med/large.
+ - This version of &quot;Insert/Swap Kodi Favourites&quot; uses the configuration panel to allow users to set the label font size small/med/large.
 [B]4.0:[/B]
 - Major Release: Repo now contains only 1 Program Addon.
-- This version of "Insert/Swap Kodi Favourites" adds the configuration panel for adding settings.
+- This version of &quot;Insert/Swap Kodi Favourites&quot; adds the configuration panel for adding settings.
   Added:
-  - "Insert/Swap Kodi Favourites"
+  - &quot;Insert/Swap Kodi Favourites&quot;
   Removed:
-  - "Order Favourites"
+  - &quot;Order Favourites&quot;
 [B]3.1:[/B]
 - Minor Release: Repo now contains only 1 version of Order Favourites.
   Added:
-  - "Order Favourites"
+  - &quot;Order Favourites&quot;
   Removed:
-  - "Order Favourites - Insert"
-  - "Order Favourites - Swap"
+  - &quot;Order Favourites - Insert&quot;
+  - &quot;Order Favourites - Swap&quot;
 [B]3.0:[/B]
 - Major Release: Repo now contains two versions of Program Addons:
   Added:
-  - "Order Favourites - Insert"
+  - &quot;Order Favourites - Insert&quot;
   - Order Favourites - Swap
 [B]2.1:[/B]
 - Minor Fix: Add icon for Addon
@@ -724,7 +654,7 @@ Program Addons:
 
       <news>
 [COLOR lime]•[/COLOR] Adaptação das informações de acordo com a versão atual do Kodi.
-[COLOR lime]•[/COLOR] Adição de capturas de tela em "resources" para visualização prévia.
+[COLOR lime]•[/COLOR] Adição de capturas de tela em &quot;resources&quot; para visualização prévia.
 [COLOR lime]•[/COLOR] Atualização dos links de apontamento para o GitHub.
 [COLOR lime]•[/COLOR] O repositório oferecerá suporte apenas para as versões mais recentes.
 [COLOR lime]•[/COLOR] Atualizado os links de apontamento para raw.usercontent
@@ -870,8 +800,8 @@ Program Addons:
 Browse, stream or download
 your favourite song, album or artist.
 
-Neuer Ordner "itsche und so"
-unter "Favourites Albums".
+Neuer Ordner &quot;itsche und so&quot;
+unter &quot;Favourites Albums&quot;.
 
 See Changelog!
 Python 2 und Python 3
@@ -1291,75 +1221,6 @@ KUDOS:
 
 
   </addon>
-  <addon id="plugin.program.simple.favourites" version="0.1.17" name="Simple Favourites" provider-name="primaeval">
-
-
-    <requires>
-
-
-      <import addon="xbmc.python" version="3.0.0"/>
-
-
-      <import addon="script.module.xbmcswift2"/>
-
-
-      <import addon="script.module.requests"/>
-
-
-    </requires>
-
-
-    <extension point="xbmc.python.pluginsource" library="main.py">
-
-
-      <provides>executable</provides>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary lang="en">Simple Favourites</summary>
-
-
-      <description lang="en"/>
-
-
-      <disclaimer lang="en">.</disclaimer>
-
-
-    </extension>
-
-
-    <extension point="kodi.context.item">
-
-
-      <menu id="kodi.core.main">
-
-
-
-        <item library="add_item_context.py">
-
-
-          <label>Add to simple favorites</label>
-
-
-          <visible>true</visible>
-
-
-        </item>
-
-
-
-      </menu>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="plugin.program.theredwizard" name="[COLOR red]The Red Wizard[/COLOR]" version="4.3.0" provider-name="Slam, Sarge, Funsterbe, BYB, Zaxxon709, [COLOR red]The Red Wizard[/COLOR]">
 
 
@@ -1691,7 +1552,7 @@ Screenshots und Wicki siehe Repo Kodi-Addon-ARDundZDF auf Github.
       <license>The MIT License (MIT)</license>
 
 
-      <language>"de_DE"</language>
+      <language>&quot;de_DE&quot;</language>
 
 
       <email>rols1@gmx.de</email>
@@ -1713,7 +1574,7 @@ Screenshots und Wicki siehe Repo Kodi-Addon-ARDundZDF auf Github.
 
 
   </addon>
-  <addon id="plugin.video.cumination" name="Cumination" provider-name="Cumination" version="1.1.164">
+  <addon id="plugin.video.cumination" name="Cumination" provider-name="Cumination" version="1.1.198">
 
 
     <requires>
@@ -1789,7 +1650,7 @@ Screenshots und Wicki siehe Repo Kodi-Addon-ARDundZDF auf Github.
 
 
   </addon>
-  <addon id="plugin.video.dailymotion_com" name="DailyMotion.com" version="2.4.4" provider-name="gujal">
+  <addon id="plugin.video.dailymotion_com" name="DailyMotion.com" version="2.4.5" provider-name="gujal">
 
 
     <requires>
@@ -1802,9 +1663,6 @@ Screenshots und Wicki siehe Repo Kodi-Addon-ARDundZDF auf Github.
 
 
       <import addon="script.module.kodi-six" version="0.0.1"/>
-
-
-      <import addon="script.module.requests" version="2.4.3"/>
 
 
     </requires>
@@ -1859,13 +1717,6 @@ Screenshots und Wicki siehe Repo Kodi-Addon-ARDundZDF auf Github.
 
 
       <disclaimer lang="he_IL">ייתכן שחלק מהתוספות האלו אינן חוקיות בארץ המגורים שלך - אנא בדוק את החוקים המקומיים שלך לפני ההתקנה.</disclaimer>
-
-
-      <news>
-[B]Version 2.4.4 - 02 Nov 2024[/B]
-- Use videoinfotag instead of setinfo on Kodi 20+
-- Fix playback issues
-        </news>
 
 
       <website>https://www.dailymotion.com</website>
@@ -4480,57 +4331,6 @@ Major Update:
 
 
   </addon>
-  <addon id="repository.acestream-channels" name="[COLOR FF00FFFF]Gunter25 Addons[/COLOR]" version="1.2.0" provider-name="Gunter25">
-
-
-    <extension point="xbmc.addon.repository" name="Gunter25 Addons">
-
-
-      <dir>
-
-
-        <info compressed="false">https://gunter257.github.io/repoachannels/addons.xml</info>
-
-
-        <checksum>https://gunter257.github.io/repoachannels/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://gunter257.github.io/repoachannels/repo/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Repositorio oficial de addons de Gunter25</summary>
-
-
-      <description>
-            Este repositorio contiene los addons creados y mantenidos por Gunter25.
-        </description>
-
-
-      <platform>all</platform>
-
-
-      <assets>
-
-
-        <icon>icon.png</icon>
-
-
-      </assets>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="repository.ad0lar" name="DEvmIb Repository" version="1.0" provider-name="Ad0lar, fds97AVVS, DEvmIb">
 
 
@@ -4985,88 +4785,6 @@ Major Update:
 
 
       <platform>all</platform>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.alado.tv" name="[COLOR lime][B]Alado[/COLOR][COLOR gold] Repository[/B][/COLOR]" version="0.0.3" provider-name="[COLOR lime][B]ALADO[/B][/COLOR]">
-
-
-    <extension point="xbmc.addon.repository" name="repository.alado.tv">
-
-
-
-
-      <dir minversion="20.0.0">
-
-
-        <info compressed="true">https://raw.githubusercontent.com/Alado2020/repository.alado.tv/master/nexus/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Alado2020/repository.alado.tv/master/nexus/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Alado2020/repository.alado.tv/master/nexus/</datadir>
-
-
-      </dir>
-
-
-
-      <dir minversion="19.0.0">
-
-
-        <info compressed="true">https://raw.githubusercontent.com/Alado2020/repository.alado.tv/master/matrix/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Alado2020/repository.alado.tv/master/matrix/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Alado2020/repository.alado.tv/master/matrix/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>[COLOR gold]By Team Milhano[/COLOR]</summary>
-
-
-      <description>[COLOR gold]By Team Milhano[/COLOR]</description>
-
-
-      <disclaimer/>
-
-
-      <platform>all</platform>
-
-
-      <assets>
-
-
-        <icon>icon.gif</icon>
-
-
-        <fanart>fanart.gif</fanart>
-
-
-        <screenshot>resources/screenshot000.jpg</screenshot>
-
-
-        <screenshot>resources/screenshot001.jpg</screenshot>
-
-
-        <screenshot>resources/screenshot002.jpg</screenshot>
-
-
-      </assets>
 
 
     </extension>
@@ -5857,144 +5575,6 @@ Major Update:
 
 
   </addon>
-  <addon id="repository.arxtic-ape" name="arxtic-ape repository" version="1.0.0" provider-name="arxtic-ape">
-
-
-    <extension point="xbmc.addon.repository" name="Arxtic Ape Addon Repository">
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/arxtic-ape/repo.arxtic-ape/master/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/arxtic-ape/repo.arxtic-ape/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="false">https://raw.github.com/arxtic-ape/repo.arxtic-ape/master/</datadir>
-
-
-      </dir>
-
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Gujal00/smrzips/master/zips/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Install Arxtic Ape Addons</summary>
-
-
-      <description>Install Arxtic Ape Addons</description>
-
-
-      <platform>all</platform>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.asgardrepo" name="[COLOR red]Asgard Repo[/COLOR]" version="0.0.4" provider-name="MrBlamo">
-
-
-    <extension point="xbmc.addon.repository" name="[COLOR red]Asgard Repo[/COLOR]">
-
-
-      <dir minversion="20.90.0" maxversion="22.9.9">
-
-
-        <info compressed="false">https://raw.githubusercontent.com/theasguard/Repo/master/zips/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/theasguard/Repo/master/zips/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/theasguard/Repo/master/zips/</datadir>
-
-
-      </dir>
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Gujal00/smrzips/master/zips/</datadir>
-
-
-      </dir>
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/Goldenfreddy0703/repository.otaku/master/repo/zips/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Goldenfreddy0703/repository.otaku/master/repo/zips/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Goldenfreddy0703/repository.otaku/master/repo/zips/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>The Official Repo for MrBlamo</summary>
-
-
-      <description>The Official Repo for MrBlamo</description>
-
-
-      <platform>all</platform>
-
-
-      <assets>
-
-
-        <icon>icon.png</icon>
-
-
-      </assets>
-
-
-      <genre>movies,usa</genre>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="repository.atlas" name="Atlas Repository" version="0.0.4" provider-name="NP-Bugatsinho - TechNEWSology">
 
 
@@ -6252,7 +5832,7 @@ Added new repo tree for Kodi 21 (Omega)
 
 [B]1.2.0[/B] (2023-12-08)
 
-Version in sync for major rework of "A Confluence ZEITGEIST" 3.6.0
+Version in sync for major rework of &quot;A Confluence ZEITGEIST&quot; 3.6.0
 (Version numbers vary on other Kodi generations)
 
 New addon icon
@@ -6564,46 +6144,6 @@ Changes for Kodi 17 (Krypton): Repo is multi-dir based again (for now)</news>
 
 
       </assets>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.bleak-lodge" name="bleak-lodge repo" version="1.0" provider-name="bleak-lodge">
-
-
-    <extension point="xbmc.addon.repository" name="bleak-lodge repository">
-
-
-      <dir>
-
-
-        <info compressed="false">https://github.com/bleak-lodge/repository.bleak-lodge/raw/main/addons.xml</info>
-
-
-        <checksum>https://github.com/bleak-lodge/repository.bleak-lodge/raw/main/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/bleak-lodge/repository.bleak-lodge/main/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Testing and Learning stuff</summary>
-
-
-      <description>bleak-lodge add-ons</description>
-
-
-      <platform>all</platform>
 
 
     </extension>
@@ -7321,54 +6861,6 @@ Changes for Kodi 17 (Krypton): Repo is multi-dir based again (for now)</news>
 
 
   </addon>
-  <addon id="repository.centry" name="centry" version="0.0.1" provider-name="centry">
-
-
-    <extension point="xbmc.addon.repository" name="centry">
-
-
-      <dir minversion="19.0.0">
-
-
-        <info compressed="false">https://raw.githubusercontent.com/centry7/centry7.github.io/main/matrix/zips/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/centry7/centry7.github.io/main/matrix/zips/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/centry7/centry7.github.io/main/matrix/zips/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>centry</summary>
-
-
-      <description>Welcome to the world of free sports and live TV</description>
-
-
-      <disclaimer/>
-
-
-      <platform>all</platform>
-
-
-      <assets>
-
-        </assets>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="repository.chainsrepo" name="Chains Repository" provider-name="Chains" version="0.0.16">
 
 
@@ -8004,76 +7496,6 @@ Changes for Kodi 17 (Krypton): Repo is multi-dir based again (for now)</news>
 
 
       </assets>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.cywteow" name="cywteow Add-ons" version="1.1.1" provider-name="cywteow">
-
-
-    <extension point="xbmc.addon.repository" name="cywteow Add-ons">
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/cywteow/cywteow.github.io/master/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/cywteow/cywteow.github.io/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/cywteow/cywteow.github.io/master</datadir>
-
-
-      </dir>
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Gujal00/smrzips/master/zips/</datadir>
-
-
-      </dir>
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/groggyegg/lime/master/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/groggyegg/lime/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/groggyegg/lime/master</datadir>
-
-
-      </dir>
-
-
-      <dir>
-
-
-        <info compressed="false">https://aznhusband.github.io/addons.xml</info>
-
-
-        <checksum>https://aznhusband.github.io/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://aznhusband.github.io/</datadir>
-
-
-      </dir>
 
 
     </extension>
@@ -10011,8 +9433,8 @@ Kodi is a registered trademark of the XBMC Foundation. We are not connected to o
       <news>
 - Allow running in standalone mode
 - Migrate to GitHub API
-- Add support for "tag_pattern" field
-- Add support for private repositories by supplying a "token"
+- Add support for &quot;tag_pattern&quot; field
+- Add support for private repositories by supplying a &quot;token&quot;
 - Try to automatically determine zip ref from version
 - Multiple minor improvements
         </news>
@@ -10755,49 +10177,6 @@ Kodi is a registered trademark of the XBMC Foundation. We are not connected to o
 
 
   </addon>
-  <addon id="repository.fivebanger" name="fivebanger's KODI Add-ons" version="1.1.0" provider-name="fivebanger">
-
-
-    <extension point="xbmc.addon.repository" name="fivebanger's Kodi Add-on Repository">
-
-
-      <dir minversion="18.0.0">
-
-
-        <info compressed="false">https://raw.githubusercontent.com/fivebanger/kodi_addons/master/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/fivebanger/kodi_addons/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/fivebanger/kodi_addons/master/</datadir>
-
-
-        <hashes>false</hashes>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Install fivebanger's Add-ons</summary>
-
-
-      <description>Download and install addons by fivebanger</description>
-
-
-      <platform>all</platform>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="repository.flixrepo" name="[COLOR yello]Repositório flix[/COLOR] [COLOR green]OFICIAL[/COLOR]" version="1.0.2" provider-name="flix repo">
 
 
@@ -11439,47 +10818,6 @@ Kodi is a registered trademark of the XBMC Foundation. We are not connected to o
 
 
       </assets>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.giaitri" name="Giai Tri Repository" version="1.2.0" provider-name="cmd">
-
-
-    <extension point="xbmc.addon.repository">
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/huynq2504/kodi-repo/refs/heads/main/repo/zips/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/huynq2504/kodi-repo/refs/heads/main/repo/zips/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/huynq2504/kodi-repo/refs/heads/main/repo/zips/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Giai Tri Repo</summary>
-
-
-      <description>Repository cho Giai Tri</description>
-
-
-      <platform>all</platform>
 
 
     </extension>
@@ -12462,61 +11800,6 @@ Kodi is a registered trademark of the XBMC Foundation. We are not connected to o
 
 
       </assets>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.host505" name="host505 repo" version="2.5" provider-name="host505">
-
-
-    <extension point="xbmc.addon.repository" name="host505 repo">
-
-
-      <dir>
-
-
-        <info compressed="false">https://github.com/host505/repository.host505/raw/master/addons.xml</info>
-
-
-        <checksum>https://github.com/host505/repository.host505/raw/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/host505/repository.host505/master/</datadir>
-
-
-      </dir>
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Gujal00/smrzips/master/zips/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Testing and Learning stuff</summary>
-
-
-      <description>host505 repo</description>
-
-
-      <platform>all</platform>
 
 
     </extension>
@@ -13681,72 +12964,6 @@ Den kompletten Changelog findet Ihr in der changelog.txt
 
 
       </assets>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.kodi.reavey05.com" name="KODI Repository @ reavey05.com" version="0.1.6" provider-name="Brian Reavey">
-
-
-
-    <extension point="xbmc.addon.repository">
-
-
-      <dir>
-
-
-        <info>https://repository.kodi.reavey05.com/addons.xml</info>
-
-
-        <checksum>https://repository.kodi.reavey05.com/addons.xml.sha256</checksum>
-
-
-        <datadir>https://repository.kodi.reavey05.com/</datadir>
-
-
-        <hashes>sha256</hashes>
-
-
-      </dir>
-
-
-    </extension>
-
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>KODI Repository @ reavey05.com</summary>
-
-
-      <description>A repository of add-ons developed for a personal Kodi system</description>
-
-
-      <disclaimer/>
-
-
-      <news>0.1.6 - Add multi-addon support</news>
-
-
-      <platform>all</platform>
-
-
-      <language/>
-
-
-      <license>GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007</license>
-
-
-      <website>https://repository.kodi.reavey05.com/</website>
-
-
-      <source>https://github.com/brianpatrickreavey/repository.kodi.reavey05.com</source>
-
-
-      <email>brian at reavey05 dot com</email>
 
 
     </extension>
@@ -16884,58 +16101,6 @@ Den kompletten Changelog findet Ihr in der changelog.txt
 
 
   </addon>
-  <addon id="repository.mtr81" name="mtr81" version="1.0" provider-name="lg">
-
-
-    <extension point="xbmc.addon.repository" name="mtr81">
-
-
-      <dir>
-
-
-        <info compressed="false">https://mtr81.github.io/kodi_addons/addons/addons.xml</info>
-
-
-        <checksum>https://mtr81.github.io/kodi_addons/addons/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://mtr81.github.io/kodi_addons/addons/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Wtyczki do odtwarzacza Kodi (v.19,20)</summary>
-
-
-      <description>Wtyczki do odtwarzacza Kodi (v.19,20)</description>
-
-
-      <platform>all</platform>
-
-
-      <assets>
-
-
-        <icon/>
-
-
-        <fanart/>
-
-
-      </assets>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="repository.NarcacistWizard" name="Narcacist's Wizard Repository --&gt; Lost Soul Repository" version="1.2.0a" provider-name="(Narcacist) Team Asgard">
 
 
@@ -18544,46 +17709,6 @@ Den kompletten Changelog findet Ihr in der changelog.txt
 
 
   </addon>
-  <addon id="repository.opencode" name="OpenCode Repository" version="1.0.0" provider-name="opencode">
-
-
-    <extension point="xbmc.addon.repository" name="OpenCode Repository">
-
-
-      <dir minversion="20.9.0" maxversion="22.8.9">
-
-
-        <info compressed="false">https://mozzy616.github.io/opencode-repo/repo/zips/addons.xml</info>
-
-
-        <checksum>https://mozzy616.github.io/opencode-repo/repo/zips/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://mozzy616.github.io/opencode-repo/repo/zips/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary lang="en">OpenCode Repository</summary>
-
-
-      <description lang="en">XPrime, StreamLord, LordPlayer, Kodi Toolbox, Marmalade Build</description>
-
-
-      <platform>all</platform>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="repository.openwizard" name="[COLOR limegreen][B]Open[/B][/COLOR]Wizard Repository" version="2.0" provider-name="drinfernoo">
 
 
@@ -19275,64 +18400,6 @@ Den kompletten Changelog findet Ihr in der changelog.txt
 
 
       <website>http://phoenixrebornbuild.com.hr</website>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.pikdum" name="pikdum's repo" version="0.1.0" provider-name="pikdum">
-
-
-    <extension point="xbmc.addon.repository" name="pikdum's repo">
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Gujal00/smrzips/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Gujal00/smrzips/master/zips/</datadir>
-
-
-      </dir>
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/pikdum/repository.pikdum/master/repo/zips/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/pikdum/repository.pikdum/master/repo/zips/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/pikdum/repository.pikdum/master/repo/zips/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>pikdum's repo</summary>
-
-
-      <description>probably mainly haru</description>
-
-
-      <disclaimer/>
-
-
-      <platform>all</platform>
 
 
     </extension>
@@ -20246,7 +19313,7 @@ Den kompletten Changelog findet Ihr in der changelog.txt
       <summary lang="ru">Дополнения для Kodi.tv</summary>
 
 
-      <description lang="ru">Плагины авторов форума XBMC[CR]Если вы обнаружили нерабочее дополнение, сообщите об этом разработчику плагина в соответствующей теме раздела "Помощь по плагинам" русского форума xbmc.ru.</description>
+      <description lang="ru">Плагины авторов форума XBMC[CR]Если вы обнаружили нерабочее дополнение, сообщите об этом разработчику плагина в соответствующей теме раздела &quot;Помощь по плагинам&quot; русского форума xbmc.ru.</description>
 
 
       <disclaimer lang="en_US">Official Team Kodi did not make the add-ons on this repository and are not responsible for their content</disclaimer>
@@ -20268,61 +19335,6 @@ Den kompletten Changelog findet Ihr in der changelog.txt
 
 
       </assets>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.pogowurst.addons" name="Pogowurst Add-on Repository" version="1.0.0a" provider-name="pogowurst">
-
-
-    <extension point="xbmc.addon.repository" name="Pogowurst Add-on Repository">
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.github.com/pogowurst/repository.pogowurst.addons/master/addons.xml</info>
-
-
-        <checksum>https://raw.github.com/pogowurst/repository.pogowurst.addons/master/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.github.com/pogowurst/repository.pogowurst.addons/master/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary lang="en">
-            Install Addons from github.com/pogowurst development repository
-        </summary>
-
-
-      <summary lang="de">
-            Installiere Addons vom github.com/pogowurst Entwicklungs-Repository
-        </summary>
-
-
-      <description lang="en">
-            Here you can find the latest add-on developement versions.[CR]These versions might be
-            [B]unstable[/B]![CR]Use them with caution.
-        </description>
-
-
-      <description lang="de">
-            Enthält die neuesten Addon Entwicklungsversionen.[CR]Diese Versionen können instabil sein!
-        </description>
-
-
-      <platform>all</platform>
 
 
     </extension>
@@ -21587,134 +20599,6 @@ Den kompletten Changelog findet Ihr in der changelog.txt
 
 
   </addon>
-  <addon id="repository.sandmann79-py3.plugins" name="Sandmann79s Repository" version="1.0.4" provider-name="Sandmann79">
-
-
-    <extension point="xbmc.addon.repository" name="Sandmann79s Repository">
-
-
-      <dir>
-
-
-        <info compressed="false">https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages/</datadir>
-
-
-      </dir>
-
-
-      <dir minversion="18.9.0">
-
-
-        <info compressed="false">https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages-py3/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages-py3/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages-py3/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Various Addons for Kodi</summary>
-
-
-      <description/>
-
-
-      <disclaimer/>
-
-
-      <platform>all</platform>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.sandmann79.plugins" name="Sandmann79s Repository" version="2.0.0" provider-name="Sandmann79">
-
-
-    <requires>
-
-
-      <import addon="xbmc.addon" version="12.0.0"/>
-
-
-    </requires>
-
-
-    <extension point="xbmc.addon.repository" name="Sandmann79s Repository">
-
-
-      <dir minversion="18.9.9">
-
-
-        <info compressed="false">https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages-py3/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages-py3/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages-py3/</datadir>
-
-
-        <hashes>false</hashes>
-
-
-      </dir>
-
-
-      <dir maxversion="18.9.0">
-
-
-        <info compressed="false">https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages/addons.xml</info>
-
-
-        <checksum>https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://raw.githubusercontent.com/Sandmann79/xbmc/master/packages/</datadir>
-
-
-        <hashes>false</hashes>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Sandmann79s Repository</summary>
-
-
-      <description>Sandmann79s repository for Kodi add-ons</description>
-
-
-      <platform>all</platform>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="repository.sarsaila" name="Sarsailă's Addons" version="1.1.1" provider-name="Sarsailă">
 
 
@@ -22313,7 +21197,7 @@ Den kompletten Changelog findet Ihr in der changelog.txt
       <summary lang="ru">Дополнения для Kodi.tv</summary>
 
 
-      <description lang="ru">Плагины авторов форума XBMC[CR]Если вы обнаружили нерабочее дополнение, сообщите об этом разработчику плагина в соответствующей теме раздела "Помощь по плагинам" русского форума xbmc.ru.</description>
+      <description lang="ru">Плагины авторов форума XBMC[CR]Если вы обнаружили нерабочее дополнение, сообщите об этом разработчику плагина в соответствующей теме раздела &quot;Помощь по плагинам&quot; русского форума xbmc.ru.</description>
 
 
       <disclaimer lang="en_US">Official Team Kodi did not make the add-ons on this repository and are not responsible for their content</disclaimer>
@@ -22932,73 +21816,6 @@ Den kompletten Changelog findet Ihr in der changelog.txt
 
 
       <news/>
-
-
-      <assets>
-
-
-        <icon>icon.png</icon>
-
-
-        <fanart>fanart.jpg</fanart>
-
-
-      </assets>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.sniper" name="Sniper Repo" version="1.0.1" provider-name="sniper">
-
-
-    <requires>
-
-
-      <import addon="xbmc.addon" version="12.0.0"/>
-
-
-    </requires>
-
-
-    <extension point="xbmc.addon.repository" name="Sniper Repo">
-
-
-      <dir>
-
-
-        <info compressed="false">https://StrayanSniper.github.io/sniper-repo/addons.xml</info>
-
-
-        <checksum>https://StrayanSniper.github.io/sniper-repo/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://StrayanSniper.github.io/sniper-repo/zips/</datadir>
-
-
-        <hashes>false</hashes>
-
-
-      </dir>
-
-
-      <checkinterval>3600</checkinterval>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary lang="en_GB">Sniper Repo</summary>
-
-
-      <description lang="en_GB">Sniper Repository — Rugby Streams and more.</description>
-
-
-      <platform>all</platform>
 
 
       <assets>
@@ -24213,55 +23030,6 @@ Den kompletten Changelog findet Ihr in der changelog.txt
 
 
       </assets>
-
-
-    </extension>
-
-
-  </addon>
-  <addon id="repository.t4krepo" name="[COLOR blue][B] T4K[/B][/COLOR] Repository" version="1.2.5a" provider-name="silevasile">
-
-
-    <requires>
-
-
-      <import addon="xbmc.addon" version="12.0.0"/>
-
-
-    </requires>
-
-
-    <extension point="xbmc.addon.repository" name="[COLOR blue][B] T4K[/B][/COLOR] Repository">
-
-
-      <dir>
-
-
-        <info compressed="false">https://github.com/silevasile/t4k-repo/raw/master/_repo/addons.xml</info>
-
-
-        <checksum>https://github.com/silevasile/t4k-repo/raw/master/_repo/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://github.com/silevasile/t4k-repo/raw/master/_repo/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>T4K Repository</summary>
-
-
-      <description>Repo-ul lui silevasile !!</description>
-
-
-      <platform>all</platform>
 
 
     </extension>
@@ -26374,46 +25142,6 @@ Den kompletten Changelog findet Ihr in der changelog.txt
 
 
   </addon>
-  <addon id="repository.wetdreams69" name="wetdreams69 Repository" version="1.0.6" provider-name="wetdreams69">
-
-
-    <extension point="xbmc.addon.repository" name="wetdreams69 Repository">
-
-
-      <dir>
-
-
-        <info compressed="false">https://wetdreams69.github.io/repository.wetdreams69/addons.xml</info>
-
-
-        <checksum>https://wetdreams69.github.io/repository.wetdreams69/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://wetdreams69.github.io/repository.wetdreams69/</datadir>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>wetdreams69 Repository</summary>
-
-
-      <description>Repositorio de addons de wetdreams69</description>
-
-
-      <platform>all</platform>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="repository.Wherethemonsterslive" name="Where The Monsters Live Repository" version="1.10" provider-name="Wolfey B">
 
 
@@ -27618,61 +26346,6 @@ Den kompletten Changelog findet Ihr in der changelog.txt
 
 
   </addon>
-  <addon id="repository.yt.testing_unofficial" name="YouTube Test Repo (Unofficial)" version="2.0.5" provider-name="anxdpanic">
-
-
-    <requires>
-
-
-      <import addon="xbmc.python" version="3.0.1"/>
-
-
-    </requires>
-
-
-    <extension point="xbmc.addon.repository" name="YouTube Test Repo (Unofficial)">
-
-
-      <dir minversion="20.0.0">
-
-
-        <info compressed="false">https://download.osmc.tv/dev/anxdpanic/kodi/youtube/python3/unofficial_testing/addons.xml</info>
-
-
-        <checksum>https://download.osmc.tv/dev/anxdpanic/kodi/youtube/python3/unofficial_testing/addons.xml.md5</checksum>
-
-
-        <datadir zip="true">https://download.osmc.tv/dev/anxdpanic/kodi/youtube/python3/unofficial_testing/zips</datadir>
-
-
-        <hashes>false</hashes>
-
-
-      </dir>
-
-
-    </extension>
-
-
-    <extension point="xbmc.addon.metadata">
-
-
-      <summary>Install alpha and beta versions of the YouTube add-on.</summary>
-
-
-      <description>Install alpha and beta versions of the YouTube add-on.</description>
-
-
-      <disclaimer>This add-on is not supported or endorsed by Google/YouTube.</disclaimer>
-
-
-      <platform>all</platform>
-
-
-    </extension>
-
-
-  </addon>
   <addon id="repository.ytmusic" name="Ytmusic's Repository" version="1.0" provider-name="Goldenfreddy0703">
 
 
@@ -28773,7 +27446,7 @@ Auto-Update: Checks GitHub every 30 minutes for new commits and forces Kodi to r
 
       <description>Yêu cầu:
 			+ Kodi 20 trở lên.
-			+ Mở chế độ "Cập nhật các tiện ích từ Bất kỳ kho lưu trữ nào" bằng cách:
+			+ Mở chế độ &quot;Cập nhật các tiện ích từ Bất kỳ kho lưu trữ nào&quot; bằng cách:
 			- Anh ngữ: Settings &gt; System &gt; Add-ons &gt; Unknown sources &gt; Any repositories
 			- Việt ngữ: Cài đặt &gt; Hệ thống &gt; Tiện ích &gt; Không rõ nguồn gốc &gt; Bất kỳ kho lưu trữ nào
 		</description>
@@ -28865,7 +27538,7 @@ Auto-Update: Checks GitHub every 30 minutes for new commits and forces Kodi to r
 
 
   </addon>
-  <addon id="resource.language.de_de" version="11.0.105" name="German" provider-name="Team Kodi">
+  <addon id="resource.language.de_de" version="11.0.109" name="German" provider-name="Team Kodi">
 
 
     <requires>
@@ -29253,6 +27926,15 @@ v0.5.9 (2022-03-22)
 
 
       <description>Kodi module library for the Python bindings for Musicbrainz' NGS webservice developed by alastair.</description>
+
+
+      <assets>
+
+
+        <icon>icon.png</icon>
+
+
+      </assets>
 
 
       <license>GNU GENERAL PUBLIC LICENSE V3</license>

@@ -4,19 +4,19 @@
       "name": "plugins",
       "href": "plugins/",
       "kind": "Plugin",
-      "zip_count": 36
+      "zip_count": 35
     },
     {
       "name": "repository",
       "href": "repository/",
       "kind": "Repository",
-      "zip_count": 324
+      "zip_count": 300
     },
     {
       "name": "script",
       "href": "script/",
       "kind": "Script",
-      "zip_count": 15
+      "zip_count": 14
     }
   ],
   "menu": [
@@ -26,7 +26,7 @@
       "href": "plugins/",
       "kind": "Plugin",
       "depth": 0,
-      "zip_count": 36
+      "zip_count": 35
     },
     {
       "name": "audio",
@@ -42,7 +42,7 @@
       "href": "plugins/program/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 7
+      "zip_count": 6
     },
     {
       "name": "video",
@@ -58,7 +58,7 @@
       "href": "repository/",
       "kind": "Repository",
       "depth": 0,
-      "zip_count": 324
+      "zip_count": 300
     },
     {
       "name": "assets",
@@ -90,7 +90,7 @@
       "href": "repository/chamchenko-dev/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "hellyrepo.kodi",
@@ -242,7 +242,7 @@
       "href": "repository/repository.acestream-channels/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 2
+      "zip_count": 0
     },
     {
       "name": "repository.ad0lar",
@@ -306,7 +306,7 @@
       "href": "repository/repository.alado.tv/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.alfa-addon",
@@ -402,7 +402,7 @@
       "href": "repository/repository.arxtic-ape/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.asgardrepo",
@@ -410,7 +410,7 @@
       "href": "repository/repository.asgardrepo/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.atlas",
@@ -474,7 +474,7 @@
       "href": "repository/repository.bleak-lodge/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.bossanova808",
@@ -554,7 +554,7 @@
       "href": "repository/repository.centry/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.chainsrepo",
@@ -626,7 +626,7 @@
       "href": "repository/repository.cywteow/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.dab",
@@ -842,7 +842,7 @@
       "href": "repository/repository.fivebanger/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.flixrepo",
@@ -922,7 +922,7 @@
       "href": "repository/repository.giaitri/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.gigoro33-addon",
@@ -1042,7 +1042,7 @@
       "href": "repository/repository.host505/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.hsk.crew.repo",
@@ -1186,7 +1186,7 @@
       "href": "repository/repository.kodi.reavey05.com/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.kodibae",
@@ -1482,7 +1482,7 @@
       "href": "repository/repository.mtr81/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.NarcacistWizard",
@@ -1626,7 +1626,7 @@
       "href": "repository/repository.opencode/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.openwizard",
@@ -1714,7 +1714,7 @@
       "href": "repository/repository.pikdum/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.plexkodiconnect",
@@ -1738,7 +1738,7 @@
       "href": "repository/repository.pogowurst.addons/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.polishteam",
@@ -1858,7 +1858,7 @@
       "href": "repository/repository.sandmann79-py3.plugins/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.sandmann79.plugins",
@@ -1866,7 +1866,7 @@
       "href": "repository/repository.sandmann79.plugins/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 2
+      "zip_count": 0
     },
     {
       "name": "repository.sarsaila",
@@ -1962,7 +1962,7 @@
       "href": "repository/repository.sniper/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.southpaw",
@@ -2034,7 +2034,7 @@
       "href": "repository/repository.t4krepo/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.TakeOne",
@@ -2266,7 +2266,7 @@
       "href": "repository/repository.wetdreams69/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.Wherethemonsterslive",
@@ -2410,7 +2410,7 @@
       "href": "repository/repository.yt.testing_unofficial/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 1
+      "zip_count": 0
     },
     {
       "name": "repository.ytmusic",
@@ -2554,7 +2554,7 @@
       "href": "script/",
       "kind": "Script",
       "depth": 0,
-      "zip_count": 15
+      "zip_count": 14
     },
     {
       "name": "kodi",
@@ -2570,8 +2570,8 @@
       "href": "script/module/",
       "kind": "Unterordner",
       "depth": 1,
-      "zip_count": 14
+      "zip_count": 13
     }
   ],
-  "total_zips": 376
+  "total_zips": 350
 }
