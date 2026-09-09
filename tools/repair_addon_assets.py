@@ -99,11 +99,7 @@ def repair_zip(path: Path) -> bool:
                 tmp.unlink()
         return True
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("root", nargs="?", default=".")
-    args = parser.parse_args()
-    root = Path(args.root)
+def repair_tree(root: Path) -> tuple[int, int]:
     repaired = scanned = 0
     for path in sorted(root.rglob("*.zip")):
         if path.name.startswith("repository.kodi-wulf-v"):
@@ -116,6 +112,13 @@ def main() -> int:
         except (zipfile.BadZipFile, ET.ParseError, OSError) as exc:
             print(f"SKIP: {path}: {exc}")
     print(f"Scanned ZIPs: {scanned}; repaired: {repaired}")
+    return scanned, repaired
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("root", nargs="?", default=".")
+    args = parser.parse_args()
+    repair_tree(Path(args.root))
     return 0
 
 if __name__ == "__main__":

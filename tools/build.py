@@ -17,6 +17,7 @@ from urllib.parse import quote
 import xml.etree.ElementTree as ET
 
 from kodiwulf_build_repo_core import AddonInfo, normalize_package_root, parse_addon_zip, pretty_xml
+from repair_addon_assets import repair_tree
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -536,6 +537,8 @@ def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, si
         write_site_root(root)
         print("OK: Kodi browse indexes, Jekyll navigation and frontend data generated")
         return
+    if apply:
+        repair_tree(root)
     by_identity: dict[tuple[str, str], list[tuple[Path, AddonInfo]]] = defaultdict(list)
     invalid: list[tuple[Path, str, str]] = []
     for path in candidates(root):
