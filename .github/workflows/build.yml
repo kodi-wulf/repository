@@ -70,9 +70,10 @@ jobs:
         with:
           enablement: true
 
-      - name: Upload Pages artifact
+      - name: Upload generated Pages source
         uses: actions/upload-pages-artifact@v3
         with:
+          name: github-pages-source
           path: ./
 
   deploy:
@@ -82,6 +83,71 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Download generated Pages source
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages-source
+          path: source-artifact
+
+      - name: Extract generated Pages source
+        run: |
+          mkdir source
+          tar -xf source-artifact/artifact.tar -C source
+
+      - name: Render Jekyll website
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./source
+          destination: ./_site
+
+      - name: Validate rendered website and assets
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          from urllib.parse import unquote, urlsplit
+
+          site = Path("_site")
+          class Assets(HTMLParser):
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if tag == "script":
+                      url = attrs.get("src", "")
+                  elif tag == "link" and attrs.get("rel") == "stylesheet":
+                      url = attrs.get("href", "")
+                  else:
+                      return
+                  parsed = urlsplit(url)
+                  if not url or parsed.scheme or parsed.netloc:
+                      return
+                  path = unquote(parsed.path)
+                  if path.startswith("/"):
+                      assert path.startswith("/repository/"), f"Wrong base URL: {url}"
+                      target = site / path.removeprefix("/repository/")
+                  else:
+                      target = self.page.parent / path
+                  assert target.is_file(), f"Missing asset in {self.page}: {url}"
+
+          for name in ("index.html", "how-to-use.html", "assets/theme.css", "assets/files.js", "assets/app.js"):
+              assert (site / name).is_file(), f"Missing published file: {name}"
+          pages = list(site.rglob("*.html"))
+          for page in pages:
+              content = page.read_text(encoding="utf-8")
+              assert not content.startswith("---"), f"Unrendered front matter: {page}"
+              assert "{{" not in content and "{%" not in content, f"Unrendered Liquid: {page}"
+              parser = Assets()
+              parser.page = page
+              parser.feed(content)
+          for package in Path("source").rglob("*.zip"):
+              assert (site / package.relative_to("source")).is_file(), f"Missing ZIP: {package}"
+          print(f"Validated {len(pages)} rendered pages, local assets and ZIP downloads")
+          PY
+
+      - name: Upload rendered Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
