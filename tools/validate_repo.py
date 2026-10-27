@@ -14,7 +14,7 @@ from urllib.parse import quote
 ROOT = Path(__file__).resolve().parents[1]
 TECHNICAL_ROOTS = {".github", "Repository", "_data", "_layouts", "_site", "assets", "node_modules", "tools"}
 LEGACY_MIRROR_BRANCHES = {("repository", "plugins"), ("repository", "repository"), ("repository", "script")}
-NAVIGATION_ROOTS = {"plugins", "repository", "script"}
+NAVIGATION_ROOTS = {"plugins", "repository", "script", "not-working"}
 REPO_ID = "repository.kodi-wulf"
 REPO_NAME = "Kodi-Wulf"
 REPO_VERSION = "1.33.7a"
@@ -131,7 +131,7 @@ def main() -> None:
     if not static_nav:
         fail("static Kodi root navigation is missing")
     static_hrefs = set(re.findall(r'href="([^"]+)"', static_nav.group(1)))
-    expected_hrefs = {"plugins/", "repository/", "script/", INSTALLER_NAME}
+    expected_hrefs = {"plugins/", "repository/", "script/", "not-working/", INSTALLER_NAME}
     if static_hrefs != expected_hrefs:
         fail(f"unexpected Kodi root entries: {sorted(static_hrefs ^ expected_hrefs)}")
     data_names = {item["name"] for item in tree.get("roots", [])}
