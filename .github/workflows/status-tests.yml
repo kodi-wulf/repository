@@ -5,6 +5,7 @@ on:
     paths:
       - 'tools/build.py'
       - 'tools/not_working.py'
+      - 'tools/discover_omega.py'
       - 'tools/repair_addon_assets.py'
       - 'tools/validate_repo.py'
       - 'tests/**'
@@ -21,9 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Compile preservation tooling
-        run: python3 -m py_compile tools/build.py tools/not_working.py tools/repair_addon_assets.py tools/validate_repo.py tests/test_not_working.py
+        run: python3 -m py_compile tools/build.py tools/not_working.py tools/repair_addon_assets.py tools/validate_repo.py tools/discover_omega.py tests/test_not_working.py tests/test_discover_omega.py
       - name: Run isolated ZIP and metadata fixtures (not a Kodi runtime test)
-        run: python3 -m unittest discover -s tests -p 'test_not_working.py' -v
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
 
   full-inventory-build:
     runs-on: ubuntu-latest
@@ -41,3 +42,18 @@ jobs:
         run: |
           python3 tools/validate_repo.py
           python3 tools/validate_addon_assets.py
+
+  official-omega-discovery:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare official Kodi 21 Omega plugin IDs with Kodi-Wulf
+        run: python3 tools/discover_omega.py
+      - name: Preserve evidence as a CI artifact, not an automatic import
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodiwulf-omega-discovery
+          path: audit/omega-discovery.json
+          if-no-files-found: warn
