@@ -665,7 +665,8 @@ def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, si
                 print(f"WARN: replaced conflicting package; previous file archived: {archived}")
             if not destination.exists():
                 shutil.move(str(source), str(destination))
-        if normalize_package_root(destination, info.addon_id):
+        # Preserve quarantined original ZIP bytes exactly for provenance/hash review.
+        if status != "not working" and normalize_package_root(destination, info.addon_id):
             print(f"OK: normalized Kodi ZIP root: {destination.relative_to(root)}")
         final_paths.add(destination.resolve())
         grouped[group].append(info)
