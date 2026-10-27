@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import re
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -37,6 +38,11 @@ def source_bytes(source: str) -> bytes:
     return content
 
 
+def version_key(version: str) -> tuple[tuple[int, object], ...]:
+    return tuple((0, int(x)) if x.isdigit() else (1, x.lower())
+                 for x in re.findall(r"\\d+|[^\\d]+", version))
+
+
 def plugin_inventory(xml_bytes: bytes) -> dict[str, dict[str, str]]:
     root = ET.fromstring(xml_bytes)
     if root.tag != "addons":
@@ -53,7 +59,7 @@ def plugin_inventory(xml_bytes: bytes) -> dict[str, dict[str, str]]:
             continue
         previous = inventory.get(addon_id)
         record = {"addon_id": addon_id, "name": addon.get("name", addon_id), "version": version}
-        if previous is None or previous["version"] < version:
+        if previous is None or version_key(previous["version"]) < version_key(version):
             inventory[addon_id] = record
     return inventory
 
