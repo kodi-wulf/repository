@@ -56,6 +56,14 @@ verschiebt jedes Paket in die kanonische Kategorie, aktualisiert die Kodi-
 Metadaten und entfernt den anschließend leeren Importordner. Inhaltsgleiche
 Dubletten werden außerhalb der veröffentlichten Struktur archiviert.
 
+## Not Working preservation (development)
+
+Packages with **reproduced** installation or runtime failures can be moved into a separate `not-working/` ZIP folder without deleting the original ZIP. All others remain unverified until Kodi installation and functional testing; ZIP validity and upstream age alone are insufficient to mark something as working or broken.
+
+Kodi's built-in **Install from repository** menu cannot display arbitrary repository-defined groups. A separate opt-in add-on, **Kodi-Wulf - Not Working (Archive)**, is made discoverable through the normal repository's **Add-on repositories** group. Installing that second repository shows archived packages separately; the regular Kodi-Wulf repository does not advertise broken packages as working updates.
+
+Evidence and hash review: [Not Working policy](docs/NOT_WORKING_POLICY.md). The working inventory and any new upstream imports still require source verification and reproducible Kodi testing.
+
 ## Rebuild
 
     python tools/build.py --apply
