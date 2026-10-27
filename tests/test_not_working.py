@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
-from build import prepare_archive_repository, write_browse_indexes
+from build import build, prepare_archive_repository, write_browse_indexes
 from not_working import load_status, status_for
 
 
@@ -88,6 +88,21 @@ class NotWorkingTests(unittest.TestCase):
         write_browse_indexes(self.root)
         self.assertTrue((self.root / "not-working/index.html").exists())
         self.assertTrue((self.root / "not-working/plugins/video/plugin.video.example/index.html").exists())
+
+    def test_reviewed_failure_moves_without_mutation_and_leaves_active_catalog(self):
+        source = self.create_package("zips/plugin.video.example-1.2.3.zip")
+        original_bytes = source.read_bytes()
+        self.write_status(source)
+        build(self.root, "https://example.invalid/repository/", "1.33.7a",
+              True, self.root.parent / "backup")
+        archived = self.root / "not-working/plugins/video/plugin.video.example/plugin.video.example-1.2.3.zip"
+        self.assertEqual(archived.read_bytes(), original_bytes)
+        active_ids = {node.get("id") for node in ET.parse(self.root / "addons.xml").getroot()}
+        archived_ids = {node.get("id") for node in ET.parse(self.root / "not-working/plugins/video/addons.xml").getroot()}
+        self.assertNotIn("plugin.video.example", active_ids)
+        self.assertIn("repository.kodi-wulf.notworking", active_ids)
+        self.assertIn("plugin.video.example", archived_ids)
+        self.assertTrue((self.root / "not-working/index.html").is_file())
 
     def test_empty_archive_still_has_valid_kodi_metadata(self):
         prepare_archive_repository(self.root, "https://example.invalid/repository/")
