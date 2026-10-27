@@ -574,6 +574,20 @@ def installer_categories(root: Path) -> list[str]:
     )
 
 
+def write_root_catalog_from_existing(root: Path) -> None:
+    """Keep root addons.xml in sync with the active category catalogs."""
+    infos = []
+    for group in installer_categories(root):
+        directory = root / group
+        for package in sorted(visible_zips(directory, root)):
+            try:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    infos.append(parse_addon_zip(package))
+            except SystemExit:
+                print(f"WARN: cannot list invalid package: {package.relative_to(root)}")
+    write_metadata(root, infos)
+
+
 def write_existing_metadata(root: Path) -> None:
     category_dirs = [root / "repository"]
     category_dirs.extend(
@@ -599,6 +613,7 @@ def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, si
     if installer_only:
         prepare_archive_repository(root, base_url)
         write_existing_metadata(root)
+        write_root_catalog_from_existing(root)
         categories = installer_categories(root)
         if not categories:
             raise RuntimeError("no repository metadata categories found")
