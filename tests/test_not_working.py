@@ -94,7 +94,7 @@ class NotWorkingTests(unittest.TestCase):
         original_bytes = source.read_bytes()
         self.write_status(source)
         build(self.root, "https://example.invalid/repository/", "1.33.7a",
-              True, self.root.parent / "backup")
+              True, self.root / ".backups")
         archived = self.root / "not-working/plugins/video/plugin.video.example/plugin.video.example-1.2.3.zip"
         self.assertEqual(archived.read_bytes(), original_bytes)
         active_ids = {node.get("id") for node in ET.parse(self.root / "addons.xml").getroot()}
