@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 
 from kodiwulf_build_repo_core import AddonInfo, normalize_package_root, parse_addon_zip, pretty_xml
 from repair_addon_assets import repair_tree
+from not_working import load_status, status_for
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,7 +27,9 @@ REPO_ID = "repository.kodi-wulf"
 REPO_NAME = "Kodi-Wulf"
 REPO_PROVIDER = "Kodi-Wulf"
 DEFAULT_REPO_VERSION = "1.33.7a"
-NAVIGATION_ROOTS = {"plugins", "repository", "script"}
+NAVIGATION_ROOTS = {"plugins", "repository", "script", "not-working"}
+ARCHIVE_REPO_ID = "repository.kodi-wulf.notworking"
+ARCHIVE_REPO_VERSION = "0.1.0"
 SKIP_PARTS = {".git", ".drdebug-backups", "__pycache__"}
 TECHNICAL_ROOTS = {
     ".github", "Repository", "_data", "_layouts", "_site", "assets", "node_modules", "tools"
@@ -210,6 +213,8 @@ def root_kind(name: str) -> str:
     lowered = name.lower()
     if lowered == "repository":
         return "Repository"
+    if lowered == "not-working":
+        return "Not Working (Archiv)"
     if lowered in {"plugin", "plugins"}:
         return "Plugin"
     if lowered == "script":
@@ -243,6 +248,10 @@ def ensure_generic_index(directory: Path, root: Path) -> None:
 
 
 def write_browse_indexes(root: Path) -> None:
+    archive = root / "not-working"
+    archive.mkdir(exist_ok=True)
+    for directory in [archive, *sorted(path for path in archive.rglob("*") if path.is_dir())]:
+        ensure_generic_index(directory, root)
     repository = root / "repository"
     if repository.is_dir():
         ensure_generic_index(repository, root)
@@ -492,6 +501,69 @@ def write_repo_zip(root: Path, xml: bytes, version: str) -> Path:
     return target
 
 
+def archive_repository_xml(groups: list[str], base_url: str) -> bytes:
+    """A second, opt-in Kodi repository: never advertise broken ZIPs as working."""
+    if not groups:
+        groups = ["not-working"]
+    dirs = []
+    for group in groups:
+        url = base_url.rstrip("/") + "/" + group.strip("/") + "/"
+        dirs.append(f"""    <dir>
+      <info compressed="false">{html.escape(url)}addons.xml</info>
+      <checksum>{html.escape(url)}addons.xml.md5</checksum>
+      <datadir zip="true">{html.escape(url)}</datadir>
+      <hashes>false</hashes>
+    </dir>""")
+    return (f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="{ARCHIVE_REPO_ID}" name="Kodi-Wulf - Not Working (Archive)" version="{ARCHIVE_REPO_VERSION}" provider-name="Kodi-Wulf">
+  <extension point="xbmc.addon.repository" name="Kodi-Wulf - Not Working (Archive)">
+{chr(10).join(dirs)}
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="de_DE">Archiv nachweislich nicht funktionierender Add-ons.</summary>
+    <description lang="de_DE">ACHTUNG: Diese Pakete sind nur zur Erhaltung aufgeführt. Installation oder Funktion kann fehlschlagen.</description>
+    <platform>all</platform>
+    <assets><icon>icon.png</icon><fanart>fanart.png</fanart></assets>
+  </extension>
+</addon>
+""").encode("utf-8")
+
+
+def prepare_archive_repository(root: Path, base_url: str) -> AddonInfo:
+    """Create independent archive metadata and a Kodi discoverable repository ZIP."""
+    archive = root / "not-working"
+    archive.mkdir(exist_ok=True)
+    write_metadata(archive, [])  # Empty fallback for a yet-unclassified archive.
+    groups: dict[str, list[AddonInfo]] = defaultdict(list)
+    for package in sorted(archive.rglob("*.zip")):
+        group = package.parent.parent
+        if group == archive or not archive in group.parents:
+            raise ValueError(f"Unexpected archive package location: {package}")
+        with contextlib.redirect_stderr(io.StringIO()):
+            info = parse_addon_zip(package)
+        groups[group.relative_to(root).as_posix()].append(info)
+    for group, infos in groups.items():
+        write_metadata(root / group, infos)
+
+    target = root / "repository" / ARCHIVE_REPO_ID
+    target.mkdir(parents=True, exist_ok=True)
+    package = target / f"{ARCHIVE_REPO_ID}-{ARCHIVE_REPO_VERSION}.zip"
+    with tempfile.TemporaryDirectory() as temp:
+        addon_dir = Path(temp) / ARCHIVE_REPO_ID
+        addon_dir.mkdir()
+        (addon_dir / "addon.xml").write_bytes(
+            archive_repository_xml(sorted(groups), base_url)
+        )
+        if (root / "icon.png").is_file():
+            shutil.copy2(root / "icon.png", addon_dir / "icon.png")
+        if (root / "bg.png").is_file():
+            shutil.copy2(root / "bg.png", addon_dir / "fanart.png")
+        with zipfile.ZipFile(package, "w", zipfile.ZIP_DEFLATED) as zf:
+            for entry in sorted(addon_dir.iterdir()):
+                zf.write(entry, f"{ARCHIVE_REPO_ID}/{entry.name}")
+    return parse_addon_zip(package)
+
+
 def installer_categories(root: Path) -> list[str]:
     candidates = [root / "repository"]
     candidates.extend(path for parent in (root / "plugins", root / "script") if parent.is_dir() for path in parent.iterdir() if path.is_dir())
@@ -500,6 +572,20 @@ def installer_categories(root: Path) -> list[str]:
         for path in candidates
         if (path / "addons.xml").is_file() and (path / "addons.xml.md5").is_file()
     )
+
+
+def write_root_catalog_from_existing(root: Path) -> None:
+    """Keep root addons.xml in sync with the active category catalogs."""
+    infos = []
+    for group in installer_categories(root):
+        directory = root / group
+        for package in sorted(visible_zips(directory, root)):
+            try:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    infos.append(parse_addon_zip(package))
+            except SystemExit:
+                print(f"WARN: cannot list invalid package: {package.relative_to(root)}")
+    write_metadata(root, infos)
 
 
 def write_existing_metadata(root: Path) -> None:
@@ -525,7 +611,9 @@ def write_existing_metadata(root: Path) -> None:
 
 def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, site_only: bool = False, installer_only: bool = False) -> None:
     if installer_only:
+        prepare_archive_repository(root, base_url)
         write_existing_metadata(root)
+        write_root_catalog_from_existing(root)
         categories = installer_categories(root)
         if not categories:
             raise RuntimeError("no repository metadata categories found")
@@ -537,8 +625,17 @@ def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, si
         write_site_root(root)
         print("OK: Kodi browse indexes, Jekyll navigation and frontend data generated")
         return
+    decisions = load_status(root)
     if apply:
-        repair_tree(root)
+        def skip_reviewed_zip(path: Path) -> bool:
+            try:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    info = parse_addon_zip(path)
+            except SystemExit:
+                return False
+            return (info.addon_id, info.version) in decisions
+
+        repair_tree(root, should_skip=skip_reviewed_zip)
     by_identity: dict[tuple[str, str], list[tuple[Path, AddonInfo]]] = defaultdict(list)
     invalid: list[tuple[Path, str, str]] = []
     for path in candidates(root):
@@ -577,7 +674,12 @@ def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, si
     grouped: dict[str, list[AddonInfo]] = defaultdict(list)
     final_paths: set[Path] = set()
     for source, info, items in selected:
+        status = status_for(source, info.addon_id, info.version, decisions)
         group = category(info)
+        if status == "not working":
+            group = "not-working/" + group
+        if source.relative_to(root).parts[0] == "not-working" and status != "not working":
+            raise ValueError(f"Archived package needs evidence before restoring: {source.relative_to(root)}")
         destination = root / group / info.addon_id / f"{info.addon_id}-{info.version}.zip"
         destination.parent.mkdir(parents=True, exist_ok=True)
         if source.resolve() != destination.resolve():
@@ -586,7 +688,8 @@ def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, si
                 print(f"WARN: replaced conflicting package; previous file archived: {archived}")
             if not destination.exists():
                 shutil.move(str(source), str(destination))
-        if normalize_package_root(destination, info.addon_id):
+        # Preserve quarantined original ZIP bytes exactly for provenance/hash review.
+        if status != "not working" and normalize_package_root(destination, info.addon_id):
             print(f"OK: normalized Kodi ZIP root: {destination.relative_to(root)}")
         final_paths.add(destination.resolve())
         grouped[group].append(info)
@@ -632,9 +735,15 @@ def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, si
             if not (child_dir / "index.html").is_file():
                 ensure_generic_index(child_dir, root)
 
-    repo_xml = make_repo_xml(sorted(grouped), base_url, version)
+    archive_repo = prepare_archive_repository(root, base_url)
+    active_groups = {key: value for key, value in grouped.items() if not key.startswith("not-working/")}
+    active_groups.setdefault("repository", [])
+    active_groups["repository"] = [i for i in active_groups["repository"] if i.addon_id != ARCHIVE_REPO_ID]
+    active_groups["repository"].append(archive_repo)
+    write_metadata(root / "repository", active_groups["repository"])
+    repo_xml = make_repo_xml(sorted(active_groups), base_url, version)
     repo_zip = write_repo_zip(root, repo_xml, version)
-    all_infos = [info for infos in grouped.values() for info in infos]
+    all_infos = [info for infos in active_groups.values() for info in infos]
     write_metadata(root, all_infos)
 
     for directory in public_roots(root):

@@ -28,6 +28,14 @@ Gefundene originale Repository-Installer werden dort abgelegt, damit die Python-
 
 Die von diesem Projekt selbst erzeugte `repository.kodi-wulf-v<version>.zip` bleibt ein zulässiges Kodi-Wulf-Buildartefakt. Diese Ausnahme gilt nicht für fremde Repository-Installer.
 
+## Verified Not Working archive
+
+The status decisions live in `_data/addon_status.json` and must refer to the exact ZIP SHA-256, add-on ID, version, dated reproduction and test evidence. Old, archived or offline upstream repositories are **not** automatically declared broken. Do not populate status decisions based on the existing `DEAD` audit flag alone.
+
+The repository builder preserves SHA-verified failures under `not-working/` and keeps them out of the active `addons.xml`. A separate Kodi archive repository is generated for optional installation and displayed under **Add-on repositories**. The WWW ZIP browser has a first-level `not-working/` folder.
+
+Before publishing new classifications, run `python3 -m unittest discover -s tests -p 'test_not_working.py' -v` and the normal repository checks, followed by a manual Kodi installation test on the intended Kodi version. See [the complete policy](docs/NOT_WORKING_POLICY.md).
+
 ## 4. Validate
 
 Run:

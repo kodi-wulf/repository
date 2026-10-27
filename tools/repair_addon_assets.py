@@ -99,10 +99,12 @@ def repair_zip(path: Path) -> bool:
                 tmp.unlink()
         return True
 
-def repair_tree(root: Path) -> tuple[int, int]:
+def repair_tree(root: Path, should_skip=None) -> tuple[int, int]:
     repaired = scanned = 0
     for path in sorted(root.rglob("*.zip")):
-        if path.name.startswith("repository.kodi-wulf-v"):
+        if (path.name.startswith("repository.kodi-wulf-v")
+                or path.relative_to(root).parts[0] == "not-working"
+                or (should_skip is not None and should_skip(path))):
             continue
         scanned += 1
         try:
