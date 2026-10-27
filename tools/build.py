@@ -610,9 +610,17 @@ def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, si
         write_site_root(root)
         print("OK: Kodi browse indexes, Jekyll navigation and frontend data generated")
         return
-    if apply:
-        repair_tree(root)
     decisions = load_status(root)
+    if apply:
+        def skip_reviewed_zip(path: Path) -> bool:
+            try:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    info = parse_addon_zip(path)
+            except SystemExit:
+                return False
+            return (info.addon_id, info.version) in decisions
+
+        repair_tree(root, should_skip=skip_reviewed_zip)
     by_identity: dict[tuple[str, str], list[tuple[Path, AddonInfo]]] = defaultdict(list)
     invalid: list[tuple[Path, str, str]] = []
     for path in candidates(root):
