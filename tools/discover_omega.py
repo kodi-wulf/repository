@@ -40,7 +40,7 @@ def source_bytes(source: str) -> bytes:
 
 def version_key(version: str) -> tuple[tuple[int, object], ...]:
     return tuple((0, int(x)) if x.isdigit() else (1, x.lower())
-                 for x in re.findall(r"\\d+|[^\\d]+", version))
+                 for x in re.findall(r"\d+|[^\d]+", version))
 
 
 def plugin_inventory(xml_bytes: bytes) -> dict[str, dict[str, str]]:
