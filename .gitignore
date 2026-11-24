@@ -34,3 +34,5 @@ tools/*.bak-*
 # Alle Buildwerkzeuge werden versioniert.
 !tools/
 !tools/*.py
+
+/.agents/
