@@ -35,7 +35,7 @@ import tempfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
@@ -81,7 +81,7 @@ def md5_bytes(data: bytes) -> str:
     return hashlib.md5(data).hexdigest()
 
 
-def normalize_package_root(zip_path: Path, addon_id: str) -> bool:
+def normalize_package_root(zip_path: Path, addon_id: str, *, preserve_original: Callable[[Path], None] | None = None) -> bool:
     """Ensure Kodi sees exactly ``<addon-id>/addon.xml`` inside a package."""
     with zipfile.ZipFile(zip_path) as archive:
         members = archive.infolist()
@@ -151,6 +151,8 @@ def normalize_package_root(zip_path: Path, addon_id: str) -> bool:
                 target.external_attr = original.external_attr
                 target.internal_attr = original.internal_attr
                 destination.writestr(target, data)
+        if preserve_original is not None:
+            preserve_original(zip_path)
         temporary.replace(zip_path)
     finally:
         if temporary is not None and temporary.exists():

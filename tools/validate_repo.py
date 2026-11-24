@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TECHNICAL_ROOTS = {".github", "Repository", "_data", "_layouts", "_site", "assets", "node_modules", "tools"}
 LEGACY_MIRROR_BRANCHES = {("repository", "plugins"), ("repository", "repository"), ("repository", "script")}
 NAVIGATION_ROOTS = {"plugins", "repository", "script"}
+DOWNLOAD_ROOTS = {"archiv", "defekt"}
 REPO_ID = "repository.kodi-wulf"
 REPO_NAME = "Kodi-Wulf"
 REPO_VERSION = "1.33.7a"
@@ -43,7 +44,7 @@ def main() -> None:
     searchable_suffixes = {".html", ".js", ".json", ".md", ".py", ".xml", ".yml", ".yaml"}
     for path in ROOT.rglob("*"):
         relative = path.relative_to(ROOT)
-        if ".git" in relative.parts:
+        if ".git" in relative.parts or ".agents" in relative.parts:
             continue
         if removed_addon_marker in path.name.lower():
             fail(f"removed add-on path still exists: {relative}")
@@ -75,6 +76,7 @@ def main() -> None:
         fail("Jekyll navigation data is missing: _data/repository_tree.json")
     tree = json.loads(tree_path.read_text(encoding="utf-8"))
     public_roots = sorted(path for path in ROOT.iterdir() if path.is_dir() and path.name in NAVIGATION_ROOTS)
+    download_roots = sorted(path for path in ROOT.iterdir() if path.is_dir() and path.name in DOWNLOAD_ROOTS)
     root_zips = sorted(ROOT.glob("*.zip"))
     if [path.name for path in root_zips] != [INSTALLER_NAME]:
         fail(f"{INSTALLER_NAME} must be the only ZIP in repository root")
@@ -107,6 +109,11 @@ def main() -> None:
             expected_url = f"https://kodi-wulf.github.io/repository/{category}/addons.xml"
             if expected_url not in addon_xml:
                 fail(f"installer does not expose category: {category}")
+        installer_metadata = ET.fromstring(addon_xml)
+        for field in ("info", "checksum", "datadir"):
+            for link in installer_metadata.findall(f".//dir/{field}"):
+                if any(f"/{name}/" in (link.text or "") for name in DOWNLOAD_ROOTS):
+                    fail(f"download-only directory advertised by Kodi installer: {link.text}")
 
     for zip_path in root_zips:
         linked_name = quote(zip_path.name, safe="/._-~")
@@ -135,7 +142,7 @@ def main() -> None:
     if static_hrefs != expected_hrefs:
         fail(f"unexpected Kodi root entries: {sorted(static_hrefs ^ expected_hrefs)}")
     data_names = {item["name"] for item in tree.get("roots", [])}
-    if data_names != {path.name for path in public_roots}:
+    if data_names != {path.name for path in public_roots + download_roots}:
         fail("Jekyll root navigation does not match public root directories")
     if "site.data.repository_tree.roots" not in index:
         fail("root index does not render the generated Jekyll roots")
@@ -154,7 +161,9 @@ def main() -> None:
     })
     if obsolete_installers:
         fail(f"obsolete nested Kodi-Wulf installer exists: {obsolete_installers[0].relative_to(ROOT)}")
-    for item in json.loads(browser_data.removeprefix("window.KODIWULF_FILES=").split(";", 1)[0]):
+    browser_files, _ = json.JSONDecoder().raw_decode(browser_data.removeprefix("window.KODIWULF_FILES="))
+    files_by_path = {item.get("path"): item for item in browser_files}
+    for item in browser_files:
         if "size" not in item or "size_label" not in item:
             fail(f"ZIP size metadata is missing: {item.get('path', '?')}")
 
@@ -224,9 +233,22 @@ def main() -> None:
     hashes = [hashlib.sha256(path.read_bytes()).hexdigest() for path in classified]
     if len(hashes) != len(set(hashes)):
         fail("duplicate ZIP content exists in the public category structure")
-    pending_imports = sorted((ROOT / "zips").rglob("*.zip")) if (ROOT / "zips").is_dir() else []
+    pending_imports = sorted(path for path in (ROOT / "zips").rglob("*") if path.suffix.casefold() == ".zip" and path.is_file())
     if pending_imports:
         fail(f"unprocessed ZIP remains in zips/: {pending_imports[0].relative_to(ROOT)}")
+    for directory in download_roots:
+        if list(directory.rglob("addons.xml")):
+            fail(f"Kodi metadata in download-only directory: {directory.relative_to(ROOT)}")
+        download_index = (directory / "index.html").read_text(encoding="utf-8")
+        for package in (path for path in directory.rglob("*") if path.suffix.casefold() == ".zip" and path.is_file()):
+            relative = package.relative_to(ROOT).as_posix()
+            item = files_by_path.get(relative)
+            expected_url = quote(relative, safe="/._-~")
+            if not item or item.get("category") != directory.name or item.get("url") != expected_url:
+                fail(f"ZIP download missing in browser data: {relative}")
+            link = quote(package.relative_to(directory).as_posix(), safe="/._-~")
+            if f'href="{link}" download=""' not in download_index:
+                fail(f"Download link absent in section index: {relative}")
     plugins_index = (ROOT / "plugins" / "index.html").read_text(encoding="utf-8")
     for child in sorted(path for path in (ROOT / "plugins").iterdir() if path.is_dir()):
         if f'href="{quote(child.name, safe="._-~")}/"' not in plugins_index:

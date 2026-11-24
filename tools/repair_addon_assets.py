@@ -8,6 +8,7 @@ import tempfile
 import zipfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Callable
 
 def local(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
@@ -30,7 +31,7 @@ def choose_asset(names: set[str], root: str, candidates: tuple[str, ...]) -> str
             return hit[len(prefix):] if prefix and hit.startswith(prefix) else hit
     return None
 
-def repair_zip(path: Path) -> bool:
+def repair_zip(path: Path, *, preserve_original: Callable[[Path], None] | None = None) -> bool:
     with zipfile.ZipFile(path, "r") as src:
         names = src.namelist()
         addon_xml_name = find_addon_xml(names)
@@ -93,6 +94,8 @@ def repair_zip(path: Path) -> bool:
                     data = xml_bytes if info.filename == addon_xml_name else src.read(info.filename)
                     dst.writestr(info, data)
             shutil.copystat(path, tmp)
+            if preserve_original is not None:
+                preserve_original(path)
             tmp.replace(path)
         finally:
             if tmp.exists():
@@ -102,6 +105,9 @@ def repair_zip(path: Path) -> bool:
 def repair_tree(root: Path) -> tuple[int, int]:
     repaired = scanned = 0
     for path in sorted(root.rglob("*.zip")):
+        relative = path.relative_to(root)
+        if relative.parts[0] in {"archiv", "defekt"} or any(part.startswith(".") for part in relative.parts):
+            continue
         if path.name.startswith("repository.kodi-wulf-v"):
             continue
         scanned += 1

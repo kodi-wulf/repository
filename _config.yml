@@ -4,6 +4,7 @@ baseurl: /repository
 exclude:
   - index.md
   - tools
+  - tests
   - node_modules
   - package.json
   - package-lock.json

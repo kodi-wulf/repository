@@ -11,13 +11,14 @@ import re
 import shutil
 import tempfile
 import zipfile
+import zlib
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import quote
 import xml.etree.ElementTree as ET
 
 from kodiwulf_build_repo_core import AddonInfo, normalize_package_root, parse_addon_zip, pretty_xml
-from repair_addon_assets import repair_tree
+from repair_addon_assets import repair_zip
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,7 +28,8 @@ REPO_NAME = "Kodi-Wulf"
 REPO_PROVIDER = "Kodi-Wulf"
 DEFAULT_REPO_VERSION = "1.33.7a"
 NAVIGATION_ROOTS = {"plugins", "repository", "script"}
-SKIP_PARTS = {".git", ".drdebug-backups", "__pycache__"}
+DOWNLOAD_ROOTS = {"archiv", "defekt"}
+SKIP_PARTS = {".git", ".agents", ".drdebug-backups", "__pycache__"}
 TECHNICAL_ROOTS = {
     ".github", "Repository", "_data", "_layouts", "_site", "assets", "node_modules", "tools"
 }
@@ -39,23 +41,82 @@ def installer_name(version: str = DEFAULT_REPO_VERSION) -> str:
     return f"{REPO_ID}-v{version}.zip"
 
 
+def zip_files(directory: Path, *, recursive: bool = True):
+    paths = directory.rglob("*") if recursive else directory.glob("*")
+    return (path for path in paths if path.suffix.casefold() == ".zip" and path.is_file())
+
+
+def require_no_publish_symlinks(root: Path) -> None:
+    for path in root.rglob("*"):
+        relative = path.relative_to(root)
+        if SKIP_PARTS.intersection(relative.parts):
+            continue
+        if path.is_symlink():
+            raise RuntimeError(f"symbolic link cannot be published: {relative}")
+
+
 def installer_paths(root: Path) -> list[Path]:
-    patterns = (f"{REPO_ID}-v*.zip", "repository.kodiwulf-*.zip")
-    return sorted({path for pattern in patterns for path in root.glob(pattern) if path.is_file()})
+    prefixes = (f"{REPO_ID}-v", "repository.kodiwulf-")
+    return sorted(path for path in zip_files(root, recursive=False) if path.name.casefold().startswith(prefixes))
 
 
 def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open("rb") as source:
+        return hashlib.file_digest(source, "sha256").hexdigest()
 
 
-def archive_import(path: Path, root: Path, backup: Path) -> Path:
-    rel = path.relative_to(root)
-    archived = backup / rel
-    archived.parent.mkdir(parents=True, exist_ok=True)
-    if archived.exists():
-        archived = archived.with_name(archived.stem + "-" + digest(path)[:10] + archived.suffix)
-    shutil.move(str(path), str(archived))
-    return archived
+def preserve_zip(path: Path, relative: Path, archive: Path, *, copy: bool = False) -> Path:
+    destination = archive / relative
+    if not destination.parent.resolve().is_relative_to(archive.absolute()):
+        raise RuntimeError(f"unsafe ZIP preservation path: {destination}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    original = destination
+    counter = 0
+    while destination.exists() or destination.is_symlink():
+        counter += 1
+        destination = original.with_name(f"{original.stem}-{counter}{original.suffix}")
+    if copy:
+        with tempfile.TemporaryDirectory(dir=destination.parent) as temporary:
+            staged = Path(temporary) / destination.name
+            shutil.copy2(path, staged)
+            staged.rename(destination)
+    else:
+        path.rename(destination)
+    return destination
+
+
+def classify_zip(path: Path) -> tuple[AddonInfo | None, str]:
+    messages = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(messages):
+            info = parse_addon_zip(path)
+        if not info.addon_id[0].isalnum() or not re.fullmatch(r"[A-Za-z0-9._+~-]+", info.version) or info.version in {".", ".."}:
+            return None, "Ungültige Add-on-ID oder Version"
+        with zipfile.ZipFile(path) as archive:
+            filenames = set()
+            for member in archive.infolist():
+                name = member.filename.replace("\\", "/")
+                if name.startswith("/") or ".." in name.split("/") or re.match(r"^[A-Za-z]:", name):
+                    return None, "Unsicherer Pfad im ZIP"
+                if not member.is_dir():
+                    if name in filenames:
+                        return None, "Doppelter Dateipfad im ZIP"
+                    filenames.add(name)
+            if archive.testzip() is not None:
+                return None, "Prüfsumme im ZIP stimmt nicht"
+    except SystemExit:
+        return None, messages.getvalue().replace(str(path), path.name).strip() or "Ungültige Add-on-Metadaten"
+    except (zipfile.BadZipFile, RuntimeError, zlib.error, EOFError) as error:
+        return None, f"ZIP kann nicht gelesen werden ({type(error).__name__})"
+    return info, ""
+
+
+def visible_archive_path(path: Path, root: Path) -> Path:
+    return Path(*(f"file-{part}" if part.startswith((".", "_")) else part for part in path.relative_to(root).parts))
+
+
+def move_out_of_catalog(path: Path, root: Path, bucket: str) -> Path:
+    return preserve_zip(path, visible_archive_path(path, root), root / bucket)
 
 
 def remove_empty_import_tree(root: Path) -> None:
@@ -84,14 +145,16 @@ def cleanup_legacy_mirrors(root: Path) -> None:
         resolved = target.resolve()
         if resolved.parent != mirror_parent or resolved.name not in LEGACY_MIRROR_NAMES:
             raise RuntimeError(f"unsafe legacy cleanup target: {resolved}")
+        for package in sorted(zip_files(target)):
+            info, _ = classify_zip(package)
+            move_out_of_catalog(package, root, "archiv" if info else "defekt")
         removed_files += sum(1 for path in target.rglob("*") if path.is_file())
         shutil.rmtree(target)
-    for pattern in (f"{REPO_ID}-v*.zip", "repository.kodiwulf-*.zip"):
-        for obsolete_installer in (root / "repository").glob(pattern):
-            if obsolete_installer.parent.resolve() != mirror_parent:
-                raise RuntimeError(f"unsafe obsolete installer target: {obsolete_installer}")
-            obsolete_installer.unlink()
-            removed_files += 1
+    for obsolete_installer in installer_paths(root / "repository"):
+        if obsolete_installer.parent.resolve() != mirror_parent:
+            raise RuntimeError(f"unsafe obsolete installer target: {obsolete_installer}")
+        info, _ = classify_zip(obsolete_installer)
+        move_out_of_catalog(obsolete_installer, root, "archiv" if info else "defekt")
     print(f"OK: removed {removed_files} files from legacy repository mirrors")
 
 
@@ -135,15 +198,14 @@ def category(info: AddonInfo) -> str:
 
 def candidates(root: Path) -> list[Path]:
     result = []
-    for path in root.rglob("*.zip"):
+    installers = set(installer_paths(root) + installer_paths(root / "repository"))
+    for path in zip_files(root):
         rel = path.relative_to(root)
-        if any(part in SKIP_PARTS for part in rel.parts):
+        if path.is_symlink() or any(part in SKIP_PARTS for part in rel.parts):
             continue
-        if rel.parts and rel.parts[0] == "Repository":
+        if rel.parts[0] in DOWNLOAD_ROOTS:
             continue
-        if len(rel.parts) > 1 and (rel.parts[0], rel.parts[1]) in LEGACY_MIRROR_BRANCHES:
-            continue
-        if len(rel.parts) == 1 and path in installer_paths(root):
+        if path in installers:
             continue
         result.append(path)
     return sorted(result)
@@ -157,10 +219,11 @@ def choose_source(paths: list[Path], root: Path) -> Path:
     return sorted(paths, key=rank)[0]
 
 
-def index_document(title: str, entries: list[tuple[str, str, str]]) -> str:
+def index_document(title: str, entries: list[tuple[str, str, str]], *, download_only: bool = False) -> str:
+    download = ' download=""' if download_only else ""
     rows = "\n".join(
         f'<tr><td class="type">{"DIR" if href.endswith("/") else "ZIP"}</td>'
-        f'<td><a href="{html.escape(quote(href, safe="/._-~"))}">{html.escape(name)}</a></td>'
+        f'<td><a href="{html.escape(quote(href, safe="/._-~"))}"{download}>{html.escape(name)}</a></td>'
         f'<td>{html.escape(version)}</td></tr>'
         for name, version, href in entries
     ) or '<tr><td colspan="3" class="empty">Keine ZIP-Dateien vorhanden.</td></tr>'
@@ -195,10 +258,10 @@ def is_visible_directory(path: Path, root: Path) -> bool:
 
 def visible_zips(directory: Path, root: Path) -> list[Path]:
     result = []
-    for path in directory.rglob("*.zip"):
+    for path in zip_files(directory):
         relative = path.relative_to(root)
         if len(relative.parts) == 2 and relative.parts[0] == "repository" and (
-            path.name.startswith(f"{REPO_ID}-v") or path.name.startswith("repository.kodiwulf-")
+            path.name.casefold().startswith((f"{REPO_ID}-v", "repository.kodiwulf-"))
         ):
             continue
         if is_visible_directory(path.parent, root):
@@ -208,6 +271,10 @@ def visible_zips(directory: Path, root: Path) -> list[Path]:
 
 def root_kind(name: str) -> str:
     lowered = name.lower()
+    if lowered == "defekt":
+        return "Defekt · nur Download"
+    if lowered == "archiv":
+        return "ZIP-Archiv"
     if lowered == "repository":
         return "Repository"
     if lowered in {"plugin", "plugins"}:
@@ -227,7 +294,7 @@ def menu_nodes(directory: Path, root: Path, depth: int = 0) -> list[dict[str, ob
         "depth": depth,
         "zip_count": len(visible_zips(directory, root)),
     }]
-    if depth < 1:
+    if depth < 1 and directory.name not in DOWNLOAD_ROOTS:
         for child in sorted((item for item in directory.iterdir() if item.is_dir() and not item.name.startswith(".") and is_visible_directory(item, root)), key=lambda item: item.name.lower()):
             nodes.extend(menu_nodes(child, root, depth + 1))
     return nodes
@@ -237,12 +304,20 @@ def ensure_generic_index(directory: Path, root: Path) -> None:
     entries = [(f"{child.name}/", "Ordner", f"{child.name}/") for child in sorted((item for item in directory.iterdir() if item.is_dir() and not item.name.startswith(".")), key=lambda item: item.name.lower())]
     entries.extend(
         (zip_path.name, "ZIP", zip_path.relative_to(directory).as_posix())
-        for zip_path in sorted(directory.rglob("*.zip"), key=lambda item: item.name.lower())
+        for zip_path in sorted(zip_files(directory), key=lambda item: item.name.lower())
     )
     (directory / "index.html").write_text(index_document(f"Kodi-Wulf / {directory.relative_to(root).as_posix()}", entries), encoding="utf-8")
 
 
 def write_browse_indexes(root: Path) -> None:
+    for name in sorted(DOWNLOAD_ROOTS):
+        directory = root / name
+        if directory.is_dir():
+            entries = [
+                (path.name, root_kind(name), path.relative_to(directory).as_posix())
+                for path in sorted(visible_zips(directory, root))
+            ]
+            (directory / "index.html").write_text(index_document(f"Kodi-Wulf / {root_kind(name)}", entries, download_only=True), encoding="utf-8")
     repository = root / "repository"
     if repository.is_dir():
         ensure_generic_index(repository, root)
@@ -276,7 +351,7 @@ def write_site_root(root: Path) -> None:
     items = []
     for zip_path in installer_paths(root):
         items.append({"path": zip_path.name, "name": zip_path.name, "url": quote(zip_path.name, safe="/._-~"), "category": "installer", "size": zip_path.stat().st_size, "size_label": format_size(zip_path.stat().st_size)})
-    roots = [directory for directory in public_roots(root) if directory.name in NAVIGATION_ROOTS]
+    roots = [directory for directory in public_roots(root) if directory.name in NAVIGATION_ROOTS | DOWNLOAD_ROOTS]
     tree_roots = []
     for directory in roots:
         top = directory.name
@@ -289,6 +364,7 @@ def write_site_root(root: Path) -> None:
             "name": top,
             "href": quote(top, safe="._-~") + "/",
             "kind": root_kind(top),
+            "download_only": top in DOWNLOAD_ROOTS,
             "zip_count": zip_count,
         })
     assets = root / "assets"
@@ -307,7 +383,7 @@ def write_site_root(root: Path) -> None:
     )
     static_links = "\n".join(
         f'<a href="{quote(directory.name, safe="._-~")}/">{html.escape(directory.name)}/</a>'
-        for directory in roots
+        for directory in roots if directory.name in NAVIGATION_ROOTS
     )
     installer_links = "\n".join(
         f'<a href="{quote(zip_path.name, safe="/._-~")}">{html.escape(zip_path.name)}</a>'
@@ -367,7 +443,13 @@ layout: null
   </section>
 
   <nav class="jekyll-fallback" aria-label="Jekyll Navigation">
-    {% for node in site.data.repository_tree.roots %}<a href="{{ node.href | relative_url }}">{{ node.name }}/</a>{% endfor %}
+    {% for node in site.data.repository_tree.roots %}
+      {% if node.download_only %}
+        <form action="{{ node.href | relative_url }}" method="get"><button type="submit">{{ node.kind }}</button></form>
+      {% else %}
+        <a href="{{ node.href | relative_url }}">{{ node.name }}/</a>
+      {% endif %}
+    {% endfor %}
   </nav>
   <footer><span id="svelte-status">Kodi-Wulf Repository wird initialisiert …</span></footer>
 </main>
@@ -475,35 +557,39 @@ def make_repo_xml(categories: list[str], base_url: str, version: str) -> bytes:
 
 def write_repo_zip(root: Path, xml: bytes, version: str) -> Path:
     target = root / installer_name(version)
-    with tempfile.TemporaryDirectory() as temp:
-        addon_dir = Path(temp) / REPO_ID
-        addon_dir.mkdir()
-        (addon_dir / "addon.xml").write_bytes(xml)
-        if (root / "icon.png").is_file():
-            shutil.copy2(root / "icon.png", addon_dir / "icon.png")
-        if (root / "bg.png").is_file():
-            shutil.copy2(root / "bg.png", addon_dir / "fanart.png")
-        with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
-            for file_path in sorted(addon_dir.iterdir()):
-                archive.write(file_path, f"{REPO_ID}/{file_path.name}")
+    members = {f"{REPO_ID}/addon.xml": xml}
+    for source_name, addon_name in (("icon.png", "icon.png"), ("bg.png", "fanart.png")):
+        source = root / source_name
+        if source.is_file():
+            members[f"{REPO_ID}/{addon_name}"] = source.read_bytes()
+    reusable = False
+    if target.is_file():
+        try:
+            with zipfile.ZipFile(target) as current:
+                reusable = sorted(current.namelist()) == sorted(members) and all(
+                    current.read(name) == content for name, content in members.items()
+                )
+        except (zipfile.BadZipFile, RuntimeError, zlib.error):
+            pass
+    if not reusable:
+        with tempfile.TemporaryDirectory(dir=root) as temporary:
+            staged = Path(temporary) / target.name
+            with zipfile.ZipFile(staged, "w", zipfile.ZIP_DEFLATED) as archive:
+                for name, content in members.items():
+                    archive.writestr(name, content)
+            if target.exists():
+                info, _ = classify_zip(target)
+                preserve_zip(target, visible_archive_path(target, root), root / ("archiv" if info else "defekt"), copy=True)
+            staged.replace(target)
     for obsolete in installer_paths(root):
         if obsolete.resolve() != target.resolve():
-            obsolete.unlink()
+            info, _ = classify_zip(obsolete)
+            move_out_of_catalog(obsolete, root, "archiv" if info else "defekt")
     return target
 
 
-def installer_categories(root: Path) -> list[str]:
-    candidates = [root / "repository"]
-    candidates.extend(path for parent in (root / "plugins", root / "script") if parent.is_dir() for path in parent.iterdir() if path.is_dir())
-    return sorted(
-        path.relative_to(root).as_posix()
-        for path in candidates
-        if (path / "addons.xml").is_file() and (path / "addons.xml.md5").is_file()
-    )
-
-
-def write_existing_metadata(root: Path) -> None:
-    category_dirs = [root / "repository"]
+def catalog_directories(root: Path) -> list[Path]:
+    category_dirs = [root / "repository"] if (root / "repository").is_dir() else []
     category_dirs.extend(
         path
         for parent in (root / "plugins", root / "script")
@@ -511,53 +597,59 @@ def write_existing_metadata(root: Path) -> None:
         for path in parent.iterdir()
         if path.is_dir()
     )
-    for directory in category_dirs:
-        infos = []
-        for zip_path in sorted(visible_zips(directory, root)):
-            try:
-                with contextlib.redirect_stderr(io.StringIO()):
-                    infos.append(parse_addon_zip(zip_path))
-            except SystemExit:
-                print(f"WARN: metadata skipped for invalid ZIP: {zip_path.relative_to(root)}")
-        if infos:
-            write_metadata(directory, infos)
+    return category_dirs
 
 
-def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, site_only: bool = False, installer_only: bool = False) -> None:
+def write_catalog(root: Path, grouped: dict[str, list[AddonInfo]], base_url: str, version: str) -> Path:
+    for directory in catalog_directories(root):
+        write_metadata(directory, grouped.get(directory.relative_to(root).as_posix(), []))
+    write_metadata(root, [info for infos in grouped.values() for info in infos])
+    return write_repo_zip(root, make_repo_xml(sorted(grouped), base_url, version), version)
+
+
+def repair_catalog_zip(path: Path, root: Path, info: AddonInfo) -> AddonInfo:
+    def preserve_original(original: Path) -> None:
+        preserve_zip(original, visible_archive_path(original, root), root / "archiv", copy=True)
+
+    if normalize_package_root(path, info.addon_id, preserve_original=preserve_original):
+        print(f"OK: normalized Kodi ZIP root: {path.relative_to(root)}")
+    if repair_zip(path, preserve_original=preserve_original):
+        print(f"OK: repaired Kodi ZIP artwork: {path.relative_to(root)}")
+        return parse_addon_zip(path)
+    return info
+
+
+def build(root: Path, base_url: str, version: str, apply: bool, backup: Path | None, site_only: bool = False, installer_only: bool = False, cleanup_legacy: bool = False) -> None:
+    require_no_publish_symlinks(root)
     if installer_only:
-        write_existing_metadata(root)
-        categories = installer_categories(root)
-        if not categories:
+        grouped: dict[str, list[AddonInfo]] = defaultdict(list)
+        for directory in catalog_directories(root):
+            for zip_path in sorted(visible_zips(directory, root)):
+                info, error = classify_zip(zip_path)
+                if info is None:
+                    print(f"WARN: Defekt: {zip_path.relative_to(root)}: {error}")
+                    move_out_of_catalog(zip_path, root, "defekt")
+                    continue
+                if zip_path != directory / info.addon_id / f"{info.addon_id}-{info.version}.zip":
+                    raise RuntimeError(f"noncanonical package, run --apply: {zip_path.relative_to(root)}")
+                grouped[directory.relative_to(root).as_posix()].append(repair_catalog_zip(zip_path, root, info))
+        if not grouped:
             raise RuntimeError("no repository metadata categories found")
-        target = write_repo_zip(root, make_repo_xml(categories, base_url, version), version)
-        print(f"OK: installer generated: {target.name}; categories: {', '.join(categories)}")
+        target = write_catalog(root, grouped, base_url, version)
+        print(f"OK: installer generated: {target.name}; categories: {', '.join(sorted(grouped))}")
         return
     if site_only:
         write_browse_indexes(root)
         write_site_root(root)
         print("OK: Kodi browse indexes, Jekyll navigation and frontend data generated")
         return
-    if apply:
-        repair_tree(root)
     by_identity: dict[tuple[str, str], list[tuple[Path, AddonInfo]]] = defaultdict(list)
-    invalid: list[tuple[Path, str, str]] = []
+    invalid: list[Path] = []
     for path in candidates(root):
-        try:
-            with contextlib.redirect_stderr(io.StringIO()):
-                info = parse_addon_zip(path)
-        except SystemExit:
-            stem = path.stem
-            match = re.match(r"((?:plugin|repository|script)\.[A-Za-z0-9._-]+)", stem, re.IGNORECASE)
-            addon_id = match.group(1) if match else stem
-            if addon_id.lower().startswith("plugin."):
-                parts = addon_id.split(".")
-                group = f"plugins/{parts[1] if len(parts) > 2 else 'other'}"
-            elif addon_id.lower().startswith("repository."):
-                group = "repository"
-            else:
-                group = "script/module"
-            invalid.append((path, group, addon_id))
-            print(f"WARN: invalid addon.xml; filename classification used: {path.relative_to(root)} -> {group}")
+        info, error = classify_zip(path)
+        if info is None:
+            invalid.append(path)
+            print(f"WARN: Defekt: {path.relative_to(root)}: {error}")
             continue
         by_identity[(info.addon_id, info.version)].append((path, info))
 
@@ -573,78 +665,48 @@ def build(root: Path, base_url: str, version: str, apply: bool, backup: Path, si
         print(f"DRY-RUN: {len(selected)} unique add-ons")
         return
 
-    backup.mkdir(parents=True, exist_ok=True)
-    grouped: dict[str, list[AddonInfo]] = defaultdict(list)
-    final_paths: set[Path] = set()
-    for source, info, items in selected:
+    for source in invalid:
+        move_out_of_catalog(source, root, "defekt")
+
+    def archive_duplicate(path: Path) -> Path:
+        if backup is not None:
+            preserve_zip(path, path.relative_to(root), backup, copy=True)
+        return move_out_of_catalog(path, root, "archiv")
+
+    grouped = defaultdict(list)
+    pending_sources = {source: source for source, _, _ in selected}
+    published_paths = set()
+    for original, info, items in selected:
+        source = pending_sources.pop(original)
         group = category(info)
         destination = root / group / info.addon_id / f"{info.addon_id}-{info.version}.zip"
+        if destination.is_symlink() or not destination.parent.resolve().is_relative_to(root):
+            raise RuntimeError(f"unsafe Kodi package destination: {destination}")
         destination.parent.mkdir(parents=True, exist_ok=True)
         if source.resolve() != destination.resolve():
             if destination.exists() and digest(destination) != digest(source):
-                archived = archive_import(destination, root, backup)
-                print(f"WARN: replaced conflicting package; previous file archived: {archived}")
+                archived = archive_duplicate(destination)
+                if destination in pending_sources:
+                    pending_sources[destination] = archived
+                print(f"WARN: previous ZIP preserved in archiv/: {destination.relative_to(root)}")
             if not destination.exists():
-                shutil.move(str(source), str(destination))
-        if normalize_package_root(destination, info.addon_id):
-            print(f"OK: normalized Kodi ZIP root: {destination.relative_to(root)}")
-        final_paths.add(destination.resolve())
-        grouped[group].append(info)
+                source.rename(destination)
+            elif source.exists():
+                archive_duplicate(source)
+        grouped[group].append(repair_catalog_zip(destination, root, info))
+        published_paths.add(destination)
         for duplicate, _ in items:
-            if not duplicate.exists() or duplicate.resolve() in final_paths:
+            if duplicate == original or duplicate in published_paths or not duplicate.exists():
                 continue
-            archive_import(duplicate, root, backup)
-
-    for source, group, addon_id in invalid:
-        destination = root / group / addon_id / source.name
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        if source.resolve() != destination.resolve():
-            if destination.exists() and digest(destination) != digest(source):
-                archived = archive_import(destination, root, backup)
-                print(f"WARN: replaced conflicting unindexed package; previous file archived: {archived}")
-            if destination.exists():
-                archive_import(source, root, backup)
-            else:
-                shutil.move(str(source), str(destination))
-        grouped.setdefault(group, [])
+            archive_duplicate(duplicate)
 
     remove_empty_import_tree(root)
-
-    for group, infos in grouped.items():
-        directory = root / group
-        write_metadata(directory, infos)
-        depth = len(Path(group).parts)
-        prefix = "../" * depth
-        entries = []
-        for zip_path in sorted(directory.rglob("*.zip"), key=lambda item: item.name.lower()):
-            rel = zip_path.relative_to(directory).as_posix()
-            entries.append((zip_path.name, "ZIP", rel))
-        (directory / "index.html").write_text(index_document(f"Kodi-Wulf / {group}", entries), encoding="utf-8")
-
-    for parent_name in ("plugins", "script"):
-        parent = root / parent_name
-        parent.mkdir(exist_ok=True)
-        children = sorted(path.name for path in parent.iterdir() if path.is_dir() and not path.name.startswith("."))
-        entries = [(f"{child}/", "Ordner", f"{child}/") for child in children]
-        (parent / "index.html").write_text(index_document(f"Kodi-Wulf / {parent_name}", entries), encoding="utf-8")
-        for child in children:
-            child_dir = parent / child
-            if not (child_dir / "index.html").is_file():
-                ensure_generic_index(child_dir, root)
-
-    repo_xml = make_repo_xml(sorted(grouped), base_url, version)
-    repo_zip = write_repo_zip(root, repo_xml, version)
-    all_infos = [info for infos in grouped.values() for info in infos]
-    write_metadata(root, all_infos)
-
-    for directory in public_roots(root):
-        if directory.name not in {"repository", "plugins", "script"}:
-            ensure_generic_index(directory, root)
-            for child in (item for item in directory.iterdir() if item.is_dir() and not item.name.startswith(".")):
-                ensure_generic_index(child, root)
+    if cleanup_legacy:
+        cleanup_legacy_mirrors(root)
+    repo_zip = write_catalog(root, grouped, base_url, version)
     write_browse_indexes(root)
     write_site_root(root)
-    print(f"OK: {len(all_infos)} ZIPs classified; installer: {repo_zip.name}")
+    print(f"OK: {sum(map(len, grouped.values()))} installable ZIPs; {len(invalid)} defective ZIPs preserved; installer: {repo_zip.name}")
 
 
 def main() -> None:
@@ -652,18 +714,20 @@ def main() -> None:
     parser.add_argument("--root", default=str(ROOT))
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument("--repo-version", default=DEFAULT_REPO_VERSION)
-    parser.add_argument("--backup", default=str(ROOT.parent / "repository-zip-backup"))
+    parser.add_argument("--backup", type=Path, help="Keep an additional private copy of superseded ZIPs")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--site-only", action="store_true", help="Only regenerate Jekyll/frontend navigation without moving ZIPs")
     parser.add_argument("--installer-only", action="store_true", help="Only rebuild the root repository installer ZIP")
     parser.add_argument("--cleanup-legacy", action="store_true", help="Remove obsolete repository/{plugins,repository,script} mirror trees")
     args = parser.parse_args()
     root = Path(args.root).resolve()
-    if args.cleanup_legacy:
+    if args.cleanup_legacy and not args.apply:
+        require_no_publish_symlinks(root)
         cleanup_legacy_mirrors(root)
         if not (args.apply or args.site_only or args.installer_only):
             return
-    build(root, args.base_url, args.repo_version, args.apply, Path(args.backup).resolve(), args.site_only, args.installer_only)
+    build(root, args.base_url, args.repo_version, args.apply, args.backup.resolve() if args.backup else None,
+          args.site_only, args.installer_only, args.cleanup_legacy)
 
 
 if __name__ == "__main__":

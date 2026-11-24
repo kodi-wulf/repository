@@ -45,6 +45,8 @@ After installation, Kodi reads:
     repository/<addon.id>/     Repository ZIPs
     plugins/<type>/<addon.id>/ Plugin ZIPs, for example plugins/audio/
     script/<type>/<addon.id>/  Script ZIPs, for example script/module/
+    defekt/       Unveränderte, nicht installierbare ZIPs als Web-Download
+    archiv/       Erhaltene ZIP-Originale und frühere Varianten als Web-Download
     addons.xml     Kodi repository metadata
     addons.xml.md5 Kodi repository checksum
     index.html     GitHub Pages landing page
@@ -52,9 +54,12 @@ After installation, Kodi reads:
 ## Local source ZIP layout
 
 Neue ZIPs werden in `zips/` abgelegt. `tools/build.py` liest `addon.xml`,
-verschiebt jedes Paket in die kanonische Kategorie, aktualisiert die Kodi-
-Metadaten und entfernt den anschließend leeren Importordner. Inhaltsgleiche
-Dubletten werden außerhalb der veröffentlichten Struktur archiviert.
+verschiebt installierbare Pakete in ihre Kategorie und aktualisiert die Kodi-
+Metadaten. Nicht lesbare ZIPs und Pakete mit defekter `addon.xml` bleiben
+bytegetreu unter `defekt/` herunterladbar. Die Kodi-Metadaten und die statische
+Kodi-Navigation enthalten nur installierbare Pakete. Ersetzte oder beim Build
+reparierte ZIPs bleiben im Web-Bereich `archiv/` erhalten. Auch nach Ende des
+Builds enthält der veröffentlichte Stand die Bytes aller ursprünglichen ZIPs.
 
 ## Rebuild
 

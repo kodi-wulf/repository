@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from html import escape
 import json
 import re
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -11,19 +12,28 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def render_index() -> bytes:
-    document = (ROOT / "index.html").read_text(encoding="utf-8")
+def render_page(path: Path) -> bytes:
+    document = path.read_text(encoding="utf-8")
     document = re.sub(r"\A---\s*\nlayout: null\s*\n---\s*\n", "", document)
+    document = document.replace('href="/repository/', 'href="/')
     document = re.sub(
         r"\{\{\s*'(/[^']+)'\s*\|\s*relative_url\s*\}\}",
         lambda match: match.group(1),
         document,
     )
+    if path != ROOT / "index.html":
+        return document.encode("utf-8")
     tree = json.loads((ROOT / "_data" / "repository_tree.json").read_text(encoding="utf-8"))
-    links = "".join(f'<a href="/{item["href"]}">{item["name"]}/</a>' for item in tree["roots"])
+    links = []
+    for item in tree["roots"]:
+        href = escape(item["href"], quote=True)
+        if item.get("download_only"):
+            links.append(f'<form action="/{href}" method="get"><button type="submit">{escape(item["kind"])}</button></form>')
+        else:
+            links.append(f'<a href="/{href}">{escape(item["name"])}/</a>')
     document = re.sub(
         r"\{% for node in site\.data\.repository_tree\.roots %\}.*?\{% endfor %\}",
-        links,
+        lambda _: "".join(links),
         document,
         flags=re.DOTALL,
     )
@@ -32,8 +42,11 @@ def render_index() -> bytes:
 
 class PreviewHandler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802 - stdlib API
-        if self.path in {"/", "/index.html"}:
-            payload = render_index()
+        path = Path(self.translate_path(self.path))
+        if path.is_dir():
+            path /= "index.html"
+        if path.suffix == ".html" and path.is_file() and path.resolve().is_relative_to(ROOT):
+            payload = render_page(path)
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(payload)))

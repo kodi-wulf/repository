@@ -2,6 +2,7 @@ import React from "https://esm.sh/react@19";
 import { createRoot } from "https://esm.sh/react-dom@19/client";
 
 const files = Array.isArray(window.KODIWULF_FILES) ? window.KODIWULF_FILES : [];
+const roots = Array.isArray(window.KODIWULF_TREE?.roots) ? window.KODIWULF_TREE.roots : [];
 const packageFiles = files.filter((file) => file.category !== "installer");
 const h = React.createElement;
 
@@ -74,7 +75,7 @@ function FileRows({ path, query }) {
         h("span", { className: "zip-path" }, file.path),
         h("span", { className: "size-meter", "aria-hidden": "true" }, h("span", { "data-size": file.size || 0 }))
       ),
-      h("div", { className: "zip-facts" }, h("strong", null, "ZIP"), h("span", null, file.size_label || "–")),
+      h("div", { className: "zip-facts" }, h("strong", null, file.category === "defekt" ? "Defekt · nur Download" : "ZIP"), h("span", null, file.size_label || "–")),
       h("a", { className: "download-button", href: file.url, download: "", "aria-label": `${file.name} herunterladen` }, "↓")
     )
   ));
@@ -104,7 +105,7 @@ function RepositoryBrowser() {
   }, [drawerOpen]);
 
   const root = path === "";
-  const title = root ? "Drei Bereiche. Direkte ZIPs." : path === "repository" ? "repository/" : `${path}/`;
+  const title = root ? "ZIP-Kategorien" : path === "defekt" ? "Defekt · nur Download" : `${path}/`;
 
   return h(React.Fragment, null,
     h("div", { className: "browser-toolbar" },
@@ -119,10 +120,11 @@ function RepositoryBrowser() {
       h("div", { className: "folder-grid" },
         h("button", { className: `folder-card${drawerOpen ? " active" : ""}`, onClick: () => setDrawerOpen((open) => !open), "aria-expanded": drawerOpen, "aria-controls": "plugin-drawer" },
           h(FolderIcon), h("span", { className: "folder-copy" }, h("strong", null, "plugins/"), h("small", null, `${sections.length} Unterordner`)), h(Hamburger, { open: drawerOpen })),
-        h("button", { className: "folder-card", onClick: () => navigate("repository") },
-          h(FolderIcon), h("span", { className: "folder-copy" }, h("strong", null, "repository/"), h("small", null, `${directFiles("repository").length} ZIP-Dateien`)), h("span", { className: "folder-arrow" }, "→")),
-        h("button", { className: "folder-card", onClick: () => navigate("script") },
-          h(FolderIcon), h("span", { className: "folder-copy" }, h("strong", null, "script/"), h("small", null, `${directFiles("script").length} ZIP-Dateien`)), h("span", { className: "folder-arrow" }, "→"))
+        roots.filter((folder) => folder.name !== "plugins").map((folder) =>
+          h("button", { className: "folder-card", key: folder.name, onClick: () => navigate(folder.name) },
+            h(FolderIcon), h("span", { className: "folder-copy" }, h("strong", null, `${folder.name}/`),
+              h("small", null, `${folder.zip_count} ZIP-Dateien${folder.download_only ? " · nur Download" : ""}`)),
+            h("span", { className: "folder-arrow" }, "→")))
       ),
       drawerOpen && h("nav", { id: "plugin-drawer", className: "plugin-drawer", "aria-label": "Plugin-Unterordner" },
         h("div", { className: "drawer-head" }, h(Hamburger, { open: true }), h("span", null, "plugins/")),

@@ -25,14 +25,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Repair legacy add-on artwork manifests
-        run: python3 tools/repair_addon_assets.py "$GITHUB_WORKSPACE"
-
-      - name: Generate repository metadata and Jekyll navigation
+      - name: Preserve ZIPs and generate repository metadata and Jekyll navigation
         run: |
-          python3 tools/build.py --root "$GITHUB_WORKSPACE" --cleanup-legacy
-          python3 tools/build.py --root "$GITHUB_WORKSPACE" --base-url "$REPO_BASE_URL" --repo-version "$REPO_VERSION" --installer-only
-          python3 tools/build.py --root "$GITHUB_WORKSPACE" --base-url "$REPO_BASE_URL" --repo-version "$REPO_VERSION" --site-only
+          python3 - <<'PY'
+          from collections import Counter
+          from pathlib import Path
+          import hashlib
+          import os
+          import subprocess
+          import sys
+
+          def zip_inventory(root):
+              hashes = Counter()
+              for package in root.rglob("*"):
+                  if any(part in {".git", ".agents", ".drdebug-backups"} for part in package.relative_to(root).parts):
+                      continue
+                  assert not package.is_symlink(), f"Symbolic link cannot be published: {package.relative_to(root)}"
+                  if package.suffix.casefold() != ".zip" or not package.is_file():
+                      continue
+                  with package.open("rb") as content:
+                      hashes[hashlib.file_digest(content, "sha256").hexdigest()] += 1
+              return hashes
+
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          before = zip_inventory(root)
+          subprocess.run([
+              sys.executable, "tools/build.py", "--root", str(root), "--apply", "--cleanup-legacy",
+              "--base-url", os.environ["REPO_BASE_URL"], "--repo-version", os.environ["REPO_VERSION"],
+          ], check=True)
+          assert not before - zip_inventory(root), "original ZIPs missing after build"
+          PY
 
       - name: Compile and validate build tools
         run: |
@@ -47,7 +69,9 @@ jobs:
           exit "$status"
 
       - name: Validate repository
-        run: python3 tools/validate_repo.py
+        run: |
+          python3 -B -m unittest discover -s tests -v
+          python3 tools/validate_repo.py
 
       - name: Validate add-on artwork
         run: python3 tools/validate_addon_assets.py
@@ -106,6 +130,7 @@ jobs:
           from pathlib import Path
           from html.parser import HTMLParser
           from urllib.parse import unquote, urlsplit
+          import hashlib
 
           site = Path("_site")
           class Assets(HTMLParser):
@@ -138,8 +163,15 @@ jobs:
               parser = Assets()
               parser.page = page
               parser.feed(content)
-          for package in Path("source").rglob("*.zip"):
-              assert (site / package.relative_to("source")).is_file(), f"Missing ZIP: {package}"
+          for package in Path("source").rglob("*"):
+              if package.suffix.casefold() != ".zip" or not package.is_file():
+                  continue
+              published = site / package.relative_to("source")
+              assert published.is_file(), f"Missing ZIP: {package}"
+              with package.open("rb") as original, published.open("rb") as rendered:
+                  assert hashlib.file_digest(original, "sha256").digest() == hashlib.file_digest(rendered, "sha256").digest(), f"Changed ZIP: {package}"
+          published_bytes = sum(path.stat().st_size for path in site.rglob("*") if path.is_file())
+          assert published_bytes < 1_000_000_000, f"Pages artifact exceeds the ZIP library size budget: {published_bytes} bytes"
           print(f"Validated {len(pages)} rendered pages, local assets and ZIP downloads")
           PY
 
