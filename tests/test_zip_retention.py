@@ -35,6 +35,23 @@ class ZipRetentionTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             build(self.root, DEFAULT_BASE_URL, DEFAULT_REPO_VERSION, backup=None, **options)
 
+    def test_nonstandard_xml_version_is_download_only(self):
+        valid = self.root / "repository" / "repository.valid" / "repository.valid-1.0.zip"
+        package(valid, "repository.valid", document='<?xml version="1.0"?><addon id="repository.valid" version="1.0"/>')
+        defective = self.root / "repository" / "repository.invalid" / "repository.invalid-1.0.zip"
+        raw = package(
+            defective,
+            "repository.invalid",
+            document='<?xml version="1.0.1"?><addon id="repository.invalid" version="1.0"/>',
+        )
+
+        self.run_build(apply=True)
+
+        self.assertTrue(valid.is_file())
+        self.assertFalse(defective.exists())
+        self.assertEqual((self.root / "defekt" / defective.relative_to(self.root)).read_bytes(), raw)
+        self.assertEqual([addon.get("id") for addon in ET.parse(self.root / "addons.xml").getroot()], ["repository.valid"])
+
     def test_defective_zip_downloads_are_separate_from_installation(self):
         valid_id = "repository.valid"
         valid = self.root / "repository" / valid_id / f"{valid_id}-1.0.zip"

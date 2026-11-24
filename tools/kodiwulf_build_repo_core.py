@@ -186,6 +186,13 @@ def addon_xml_from_zip(zip_path: Path) -> bytes:
 
 def parse_addon_zip(zip_path: Path) -> AddonInfo:
     data = addon_xml_from_zip(zip_path)
+    declaration = re.match(rb'\A(?:\xef\xbb\xbf)?<\?xml(?=[ \t\r\n])', data)
+    # Enforce the XML VersionNum grammar across versions of the Expat parser.
+    if declaration and not re.match(
+        rb'''[ \t\r\n]+version[ \t\r\n]*=[ \t\r\n]*(['"])1\.[0-9]+\1(?=[ \t\r\n]|\?>)''',
+        data[declaration.end():],
+    ):
+        die(f"Invalid XML version declaration in {zip_path}")
     try:
         root = ET.fromstring(data)
     except ET.ParseError as exc:
