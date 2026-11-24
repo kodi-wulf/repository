@@ -1,0 +1,59 @@
+name: Kodi-Wulf status and archive regression tests
+
+on:
+  pull_request:
+    paths:
+      - 'tools/build.py'
+      - 'tools/not_working.py'
+      - 'tools/discover_omega.py'
+      - 'tools/repair_addon_assets.py'
+      - 'tools/validate_repo.py'
+      - 'tests/**'
+      - '_data/addon_status.json'
+      - '.github/workflows/status-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile preservation tooling
+        run: python3 -m py_compile tools/build.py tools/not_working.py tools/repair_addon_assets.py tools/validate_repo.py tools/discover_omega.py tests/test_not_working.py tests/test_discover_omega.py
+      - name: Run isolated ZIP and metadata fixtures (not a Kodi runtime test)
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+
+  full-inventory-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair legacy manifests in the temporary CI checkout
+        run: python3 tools/repair_addon_assets.py "$GITHUB_WORKSPACE"
+      - name: Rebuild repository installer, metadata and static ZIP navigation
+        run: |
+          python3 tools/build.py --root "$GITHUB_WORKSPACE" --cleanup-legacy
+          python3 tools/build.py --root "$GITHUB_WORKSPACE" --installer-only
+          python3 tools/build.py --root "$GITHUB_WORKSPACE" --site-only
+      - name: Validate entire source inventory without deploying
+        run: |
+          python3 tools/validate_repo.py
+          python3 tools/validate_addon_assets.py
+
+  official-omega-discovery:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare official Kodi 21 Omega plugin IDs with Kodi-Wulf
+        run: python3 tools/discover_omega.py
+      - name: Preserve evidence as a CI artifact, not an automatic import
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodiwulf-omega-discovery
+          path: audit/omega-discovery.json
+          if-no-files-found: warn

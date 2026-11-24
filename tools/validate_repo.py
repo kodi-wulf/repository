@@ -14,7 +14,7 @@ from urllib.parse import quote
 ROOT = Path(__file__).resolve().parents[1]
 TECHNICAL_ROOTS = {".github", "Repository", "_data", "_layouts", "_site", "assets", "node_modules", "tools"}
 LEGACY_MIRROR_BRANCHES = {("repository", "plugins"), ("repository", "repository"), ("repository", "script")}
-NAVIGATION_ROOTS = {"plugins", "repository", "script"}
+NAVIGATION_ROOTS = {"plugins", "repository", "script", "not-working"}
 REPO_ID = "repository.kodi-wulf"
 REPO_NAME = "Kodi-Wulf"
 REPO_VERSION = "1.33.7a"
@@ -131,7 +131,7 @@ def main() -> None:
     if not static_nav:
         fail("static Kodi root navigation is missing")
     static_hrefs = set(re.findall(r'href="([^"]+)"', static_nav.group(1)))
-    expected_hrefs = {"plugins/", "repository/", "script/", INSTALLER_NAME}
+    expected_hrefs = {"plugins/", "repository/", "script/", "not-working/", INSTALLER_NAME}
     if static_hrefs != expected_hrefs:
         fail(f"unexpected Kodi root entries: {sorted(static_hrefs ^ expected_hrefs)}")
     data_names = {item["name"] for item in tree.get("roots", [])}
@@ -213,6 +213,40 @@ def main() -> None:
                 href = quote(zip_path.name, safe="/._-~")
                 if f'href="{href}"' not in addon_page:
                     fail(f"ZIP is not linked in add-on index: {zip_path.relative_to(ROOT)}")
+
+    # Kodi's built-in repository UI cannot add arbitrary navigation groups:
+    # the optional archive repository must be discoverable in the active catalog,
+    # while quarantined packages must never be in the active root catalog.
+    from not_working import load_status, status_for
+    archive_id = "repository.kodi-wulf.notworking"
+    archive_package = ROOT / "repository" / archive_id / f"{archive_id}-0.1.0.zip"
+    if not archive_package.is_file():
+        fail("opt-in Kodi archive repository installer is missing")
+    repo_addons = ET.parse(ROOT / "repository" / "addons.xml").getroot()
+    if archive_id not in {addon.get("id") for addon in repo_addons}:
+        fail("Kodi archive repository is not discoverable via installed Kodi-Wulf")
+    with zipfile.ZipFile(archive_package) as archive_zip:
+        archive_xml = ET.fromstring(archive_zip.read(f"{archive_id}/addon.xml"))
+        if not archive_xml.findall("./extension[@point='xbmc.addon.repository']/dir"):
+            fail("archive repository lacks its Kodi metadata directory")
+    decisions = load_status(ROOT)
+    active = {(addon.get("id"), addon.get("version")) for addon in ET.parse(addons_xml).getroot()}
+    for package in (ROOT / "not-working").rglob("*.zip"):
+        try:
+            with zipfile.ZipFile(package) as zf:
+                member = next(name for name in zf.namelist() if name.endswith("/addon.xml"))
+                addon = ET.fromstring(zf.read(member))
+        except (StopIteration, zipfile.BadZipFile, ET.ParseError) as error:
+            fail(f"unreadable archived ZIP: {package.relative_to(ROOT)}: {error}")
+        addon_id, version = addon.get("id"), addon.get("version")
+        try:
+            reviewed_status = status_for(package, str(addon_id), str(version), decisions)
+        except ValueError as error:
+            fail(str(error))
+        if reviewed_status != "not working":
+            fail(f"archived package has no verified failure record: {package.relative_to(ROOT)}")
+        if (addon_id, version) in active:
+            fail(f"archived package still present in active root catalog: {addon_id} {version}")
 
     allowed_md5 = {checksum}
     allowed_md5.update(path for path in ROOT.rglob("addons.xml.md5") if (path.parent / "index.html").is_file())
