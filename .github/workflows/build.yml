@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -14,18 +15,35 @@ env:
   REPO_BASE_URL: https://kodi-wulf.github.io/repository/
   REPO_VERSION: 1.33.7a
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: [self-hosted, linux, x64, legion]
+  deploy:
+    if: ${{ toJSON(github.event.repository.private) == 'false' }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Stage tracked site source
+        run: |
+          mkdir source
+          git archive --format=tar HEAD | tar -xf - -C source
 
       - name: Preserve ZIPs and generate repository metadata and Jekyll navigation
+        working-directory: source
         run: |
           python3 - <<'PY'
           from collections import Counter
@@ -50,7 +68,7 @@ jobs:
                       hashes[hashlib.file_digest(content, "sha256").hexdigest()] += 1
               return hashes
 
-          root = Path(os.environ["GITHUB_WORKSPACE"])
+          root = Path.cwd()
           before = zip_inventory(root)
           subprocess.run([
               sys.executable, "tools/build.py", "--root", str(root), "--apply", "--cleanup-legacy",
@@ -60,6 +78,7 @@ jobs:
           PY
 
       - name: Compile and validate build tools
+        working-directory: source
         run: |
           set -o pipefail
           status=0
@@ -72,54 +91,26 @@ jobs:
           exit "$status"
 
       - name: Validate repository
+        working-directory: source
         run: |
           python3 -B -m unittest discover -s tests -v
           python3 tools/validate_repo.py
 
       - name: Validate add-on artwork
+        working-directory: source
         run: python3 tools/validate_addon_assets.py
 
       - name: Audit package versions, dependencies and upstream activity
+        working-directory: source
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python3 tools/audit_addons.py
 
-      - name: Upload audit report
-        uses: actions/upload-artifact@v4
-        with:
-          name: kodi-wulf-addon-audit
-          path: audit/
-          if-no-files-found: error
-
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
-
-      - name: Upload generated Pages source
-        uses: actions/upload-pages-artifact@v3
-        with:
-          name: github-pages-source
-          path: ./
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Download generated Pages source
-        uses: actions/download-artifact@v4
-        with:
-          name: github-pages-source
-          path: source-artifact
-
-      - name: Extract generated Pages source
-        run: |
-          mkdir source
-          tar -xf source-artifact/artifact.tar -C source
 
       - name: Render Jekyll website
         uses: actions/jekyll-build-pages@v1
@@ -183,10 +174,44 @@ jobs:
           print(f"Validated {len(pages)} rendered pages, local assets and ZIP downloads")
           PY
 
+      - name: Check temporary artifact storage
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Measure the same tar input the Pages upload action compresses.
+          pages_bytes=$(tar -C _site --exclude=.git --exclude=.github -cf - . | gzip -6 -c | wc -c)
+          audit_bytes=$(find source/audit -type f -printf '%s\n' | awk '{total += $1} END {printf "%.0f", total}')
+          repositories=$(gh api --paginate "orgs/$GITHUB_REPOSITORY_OWNER/repos?type=all&per_page=100" --jq '.[].full_name')
+          if ! grep -Fxq "$GITHUB_REPOSITORY" <<< "$repositories"; then
+            echo "Could not verify the publishing repository for the storage check." >&2
+            exit 1
+          fi
+          stored_bytes=$(
+            while IFS= read -r repo; do
+              gh api --paginate "repos/$repo/actions/artifacts?per_page=100" \
+                --jq '.artifacts[] | select(.expired == false) | .size_in_bytes' || exit 1
+            done <<< "$repositories" | awk '{total += $1} END {printf "%.0f", total}'
+          )
+          # Keep headroom for ZIP tooling and container headers, without a second Pages archive.
+          if (( stored_bytes + pages_bytes + audit_bytes + 1000000 > 500000000 )); then
+            echo "Artifact upload exceeds the scoped 500 MB storage budget." >&2
+            echo "Existing: $stored_bytes; estimated Pages: $pages_bytes; audit: $audit_bytes bytes." >&2
+            exit 1
+          fi
+          echo "Artifact budget passed: $stored_bytes existing and $pages_bytes estimated Pages bytes."
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodi-wulf-addon-audit
+          path: source/audit/
+          if-no-files-found: error
+
       - name: Upload rendered Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./_site
+          retention-days: 1
 
       - name: Deploy to GitHub Pages
         id: deployment
