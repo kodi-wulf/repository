@@ -38,9 +38,12 @@ jobs:
           def zip_inventory(root):
               hashes = Counter()
               for package in root.rglob("*"):
-                  if any(part in {".git", ".agents", ".drdebug-backups"} for part in package.relative_to(root).parts):
+                  relative = package.relative_to(root)
+                  if ".git" in relative.parts:
                       continue
-                  assert not package.is_symlink(), f"Symbolic link cannot be published: {package.relative_to(root)}"
+                  assert not package.is_symlink(), f"Symbolic link cannot be published: {relative}"
+                  if {".agents", ".drdebug-backups"}.intersection(relative.parts):
+                      continue
                   if package.suffix.casefold() != ".zip" or not package.is_file():
                       continue
                   with package.open("rb") as content:
@@ -164,13 +167,18 @@ jobs:
               parser.page = page
               parser.feed(content)
           for package in Path("source").rglob("*"):
+              assert not package.is_symlink(), f"Symbolic link in Pages source: {package}"
               if package.suffix.casefold() != ".zip" or not package.is_file():
                   continue
               published = site / package.relative_to("source")
               assert published.is_file(), f"Missing ZIP: {package}"
               with package.open("rb") as original, published.open("rb") as rendered:
                   assert hashlib.file_digest(original, "sha256").digest() == hashlib.file_digest(rendered, "sha256").digest(), f"Changed ZIP: {package}"
-          published_bytes = sum(path.stat().st_size for path in site.rglob("*") if path.is_file())
+          published_bytes = 0
+          for path in site.rglob("*"):
+              assert not path.is_symlink(), f"Symbolic link in rendered Pages: {path}"
+              if path.is_file():
+                  published_bytes += path.stat().st_size
           assert published_bytes < 1_000_000_000, f"Pages artifact exceeds the ZIP library size budget: {published_bytes} bytes"
           print(f"Validated {len(pages)} rendered pages, local assets and ZIP downloads")
           PY
